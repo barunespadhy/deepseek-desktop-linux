@@ -36,7 +36,7 @@ Dependencies are resolved automatically by the package manager:
 | `gir1.2-gdkpixbuf-2.0` | Image loading |
 | `git` | Update checks and application |
 | `ca-certificates` | HTTPS for updates and installs |
-| Node.js ≥ 24.9 | Provided by you — see below |
+| Node.js ≥ 24.9 | Bundled with the app |
 
 ### Fedora (.rpm)
 
@@ -45,7 +45,7 @@ sudo dnf install ./dist/deepseek-harness-linux-0.1.0-1.x86_64.rpm
 ```
 
 Dependencies (resolved by dnf): `python3` ≥ 3.10, `python3-gobject`, `gtk4`, `git`;
-`webkit2gtk4.1` (WebKitGTK 6.0) and Node.js ≥ 24.9 are recommended.
+`webkit2gtk4.1` (WebKitGTK 6.0) is recommended. Node.js is bundled.
 
 ### openSUSE (.rpm)
 
@@ -71,20 +71,13 @@ dsh-linux           # …or run ./bin/dsh-linux in place
 - **Arch:** `sudo pacman -S python-gobject gtk4 webkitgtk-6.0 git`
 - **openSUSE:** `sudo zypper install python3-gobject typelib-1_0-Gtk-4_0 typelib-1_0-WebKit-6_0 git`
 
-### Node.js ≥ 24.9
+### Node.js
 
-The .deb and .rpm keep Node.js user-managed because distro versions are usually too old.
-Install it any way you like:
-
-```sh
-# nvm (recommended)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-nvm install 24
-```
-
-The app auto-discovers Node from nvm, volta, asdf, mise, fnm, `~/.local/bin`, `/opt/node`,
-`/usr/local/bin`, and `/usr/bin` — including when it is launched from the desktop environment
-(where the shell PATH is not your login shell's). pnpm and the compiler are bundled.
+Every package bundles a Node.js 24 runtime (with its headers, for the first-run build), so
+nothing to install. If you run from source, the app auto-discovers Node from nvm, volta,
+asdf, mise, fnm, `~/.local/bin`, `/opt/node`, `/usr/local/bin`, and `/usr/bin` — including
+when launched from the desktop environment (where the shell PATH is not your login shell's).
+pnpm and the compiler are bundled too.
 
 ## Building from source
 
