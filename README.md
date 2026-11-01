@@ -17,7 +17,7 @@ you use from the CLI.
 
 ## Installation
 
-Pick the package for your distribution from the releases section.
+Pick the latest package for your distribution from the [releases](https://github.com/barunespadhy/deepseek-desktop-linux/releases) section.
 
 ### Debian / Ubuntu and derivatives (.deb)
 
