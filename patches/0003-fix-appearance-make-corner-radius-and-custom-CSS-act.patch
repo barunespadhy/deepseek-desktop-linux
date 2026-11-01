@@ -1,0 +1,59 @@
+From 01e509e4b7b77bcc57a27d244d0225ed693bcd55 Mon Sep 17 00:00:00 2001
+From: DeepSeek Harness Linux <dsh-linux@localhost>
+Date: Sat, 31 Oct 2026 22:52:20 +0200
+Subject: [PATCH 3/3] fix(appearance): make corner radius and custom CSS
+ actually take effect
+
+The injected stylesheet sits in the user origin, whose normal declarations
+lose to the page's author styles, so the DeepSeek UI's own :root radius
+tokens always won. Give the radius tokens an important tier, apply them
+inline on documentElement as well, and keep the fallback user stylesheet
+last in the document so equal-specificity custom CSS wins by order.
+---
+ .../src/client/appearance-source.ts             | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/packages/client/ui-settings-general/src/client/appearance-source.ts b/packages/client/ui-settings-general/src/client/appearance-source.ts
+index 2a10c5eae9..8dfd932e97 100644
+--- a/packages/client/ui-settings-general/src/client/appearance-source.ts
++++ b/packages/client/ui-settings-general/src/client/appearance-source.ts
+@@ -30,13 +30,16 @@ const RADIUS_BASES: Readonly<Record<string, number>> = Object.freeze({
+ 
+ /**
+  * Compose the radius overrides and the user stylesheet into one CSS string.
++ * The radius tokens carry `!important` because the fallback element lives in
++ * the author origin, where the page's own `:root` values would otherwise win
++ * (same failure the native user-origin sheet had before its important tier).
+  * @param state - current appearance preferences.
+  * @returns the stylesheet the shell injects (native user sheet or fallback style element).
+  */
+ export function appearanceCss(state: DesktopAppearanceState): string {
+   const scale = Math.min(2, Math.max(0, state.cornerRadiusScale))
+   const tokens = Object.entries(RADIUS_BASES)
+-    .map(([name, base]) => `${name}: ${Math.round(base * scale * 10) / 10}px;`)
++    .map(([name, base]) => `${name}: ${Math.round(base * scale * 10) / 10}px !important;`)
+     .join(' ')
+   return `:root { ${tokens} }\n${state.customCss}`
+ }
+@@ -46,9 +49,15 @@ function applyFallbackCss(state: DesktopAppearanceState): void {
+   if (typeof document === 'undefined') return
+   let element = document.getElementById(STYLE_ID)
+   if (element === null) {
+-    element = document.createElement('style')
+-    element.id = STYLE_ID
+-    document.head.append(element)
++    const style = document.createElement('style')
++    style.id = STYLE_ID
++    document.head.append(style)
++    element = style
++    // Keep the fallback sheet last so equal-specificity user rules win by
++    // document order over stylesheets the application appends later.
++    new MutationObserver(() => {
++      if (document.head.lastElementChild !== style) document.head.append(style)
++    }).observe(document.head, { childList: true })
+   }
+   element.textContent = appearanceCss(state)
+ }
+-- 
+2.43.0
+

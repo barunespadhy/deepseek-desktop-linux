@@ -1,0 +1,143 @@
+From 9ba9c2dec34e139d9364220c08361ef0a3f50e08 Mon Sep 17 00:00:00 2001
+From: DeepSeek Harness Linux <dsh-linux@localhost>
+Date: Sat, 31 Oct 2026 19:27:34 +0200
+Subject: [PATCH 2/3] feat(theme): move theme and font rows into the Appearance
+ settings section
+
+---
+ .../client/ui-theme/src/client/AppearanceRow.tsx   |  4 ++--
+ .../client/ui-theme/src/client/FontFamilyRow.tsx   |  2 +-
+ .../ui-theme/src/client/FontSettingsGroup.tsx      |  4 ++--
+ .../client/ui-theme/src/client/FontSizeRow.tsx     |  2 +-
+ packages/client/ui-theme/src/client/index.ts       | 14 +++++++-------
+ .../client/ui-theme/tests/apply.client.spec.ts     |  2 +-
+ 6 files changed, 14 insertions(+), 14 deletions(-)
+
+diff --git a/packages/client/ui-theme/src/client/AppearanceRow.tsx b/packages/client/ui-theme/src/client/AppearanceRow.tsx
+index d234bd81a5..a6c50f6698 100644
+--- a/packages/client/ui-theme/src/client/AppearanceRow.tsx
++++ b/packages/client/ui-theme/src/client/AppearanceRow.tsx
+@@ -1,5 +1,5 @@
+ /**
+- * Appearance preference row registered into the General section item slot
++ * Appearance preference row registered into the Appearance section item slot
+  * (figma 501:30012 'Frame 2117131228'): title + three preference cubes.
+  * Registered by this package — the theme feature owns its own settings
+  * surface. Selection follows the persisted preference, never the resolved
+@@ -24,7 +24,7 @@ export interface AppearanceRowInjected {
+ 
+ /** Full component props: runtime share + store share + locale seat + injected face. */
+ export type AppearanceRowComponentProps =
+-  PropsRuntime<'settings.general.item'> & PropsStore<ReturnType<typeof createAppearanceRowStore>>
++  PropsRuntime<'settings.appearance.item'> & PropsStore<ReturnType<typeof createAppearanceRowStore>>
+   & PropsLocale<'settings.theme'> & AppearanceRowInjected
+ 
+ /** Cube order and icons (figma 501:30015-30017: Light, Dark, System). */
+diff --git a/packages/client/ui-theme/src/client/FontFamilyRow.tsx b/packages/client/ui-theme/src/client/FontFamilyRow.tsx
+index 58e76042b5..99cfe9f085 100644
+--- a/packages/client/ui-theme/src/client/FontFamilyRow.tsx
++++ b/packages/client/ui-theme/src/client/FontFamilyRow.tsx
+@@ -24,7 +24,7 @@ export interface FontFamilyRowInjected {
+ 
+ /** Full component props: runtime share + store share + locale seat + injected face. */
+ export type FontFamilyRowComponentProps =
+-  PropsRuntime<'settings.general.item'> & PropsStore<ReturnType<typeof createFontRowStore>>
++  PropsRuntime<'settings.appearance.item'> & PropsStore<ReturnType<typeof createFontRowStore>>
+   & PropsLocale<'settings.theme'> & FontFamilyRowInjected
+ 
+ /**
+diff --git a/packages/client/ui-theme/src/client/FontSettingsGroup.tsx b/packages/client/ui-theme/src/client/FontSettingsGroup.tsx
+index 3069cd7c39..a92d5a9e23 100644
+--- a/packages/client/ui-theme/src/client/FontSettingsGroup.tsx
++++ b/packages/client/ui-theme/src/client/FontSettingsGroup.tsx
+@@ -1,5 +1,5 @@
+ /**
+- * Font settings registered into the General section item slot: the text
++ * Font settings registered into the Appearance section item slot: the text
+  * font-size row, whose disclosure button expands a region holding the font
+  * row for each role and the code and terminal size rows. The region starts
+  * collapsed on every mount.
+@@ -23,7 +23,7 @@ export interface FontSettingsInjected {
+ 
+ /** Full component props: runtime share + store share + locale seat + injected face. */
+ export type FontSettingsGroupProps =
+-  PropsRuntime<'settings.general.item'> & PropsStore<ReturnType<typeof createFontRowStore>>
++  PropsRuntime<'settings.appearance.item'> & PropsStore<ReturnType<typeof createFontRowStore>>
+   & PropsLocale<'settings.theme'> & FontSettingsInjected
+ 
+ /**
+diff --git a/packages/client/ui-theme/src/client/FontSizeRow.tsx b/packages/client/ui-theme/src/client/FontSizeRow.tsx
+index 93cb009bb1..632547ca79 100644
+--- a/packages/client/ui-theme/src/client/FontSizeRow.tsx
++++ b/packages/client/ui-theme/src/client/FontSizeRow.tsx
+@@ -25,7 +25,7 @@ export interface FontSizeRowInjected {
+ 
+ /** Full component props: runtime share + store share + locale seat + injected face. */
+ export type FontSizeRowComponentProps =
+-  PropsRuntime<'settings.general.item'> & PropsStore<ReturnType<typeof createFontRowStore>>
++  PropsRuntime<'settings.appearance.item'> & PropsStore<ReturnType<typeof createFontRowStore>>
+   & PropsLocale<'settings.theme'> & FontSizeRowInjected & {
+     /** Disclosure button after the unit label; the font settings group passes it for the text row. */
+     expander?: FontSizeRowExpander | undefined
+diff --git a/packages/client/ui-theme/src/client/index.ts b/packages/client/ui-theme/src/client/index.ts
+index a020fc35ae..ed1975d24d 100644
+--- a/packages/client/ui-theme/src/client/index.ts
++++ b/packages/client/ui-theme/src/client/index.ts
+@@ -5,8 +5,8 @@
+  * the DOM — ui-layout's presenter consumes the resolved snapshot. The Host
+  * settings scope loads and stores the preference in the user-settings
+  * document. The plugin also registers the Appearance and font settings rows
+- * into the settings General section — the theme feature owns its own settings
+- * surface. Desktop shortcuts adjust text, code, and terminal font sizes together.
++ * into the settings Appearance section — the theme feature owns its own
++ * settings surface. Desktop shortcuts adjust text, code, and terminal font sizes together.
+  */
+ import type { Context as ClientContext } from '@deepseek-ai/cordis'
+ import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
+@@ -588,7 +588,7 @@ export const inject = ['slots', 'locale', 'remote', 'configForms']
+ 
+ /**
+  * Client plugin body: provide the theme service and register the
+- * feature-owned Appearance and font settings rows into the General section's item
++ * feature-owned Appearance and font settings rows into the Appearance section's item
+  * slot (a feature owns its settings surface). Desktop font-size shortcuts share
+  * all three font-size settings when the keyboard service is available.
+  * @param ctx - client cordis context.
+@@ -619,8 +619,8 @@ export function apply(ctx: ClientContext): void {
+       setTheme: (id) => { theme.setTheme(id) },
+     }
+   }
+-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+-    name: 'settings.general.item',
++  ctx.slots.inject('settings.appearance.item', () => ctx.slots.register({
++    name: 'settings.appearance.item',
+     id: 'appearance',
+     order: 10,
+     store,
+@@ -628,8 +628,8 @@ export function apply(ctx: ClientContext): void {
+     inject: injected,
+   }, AppearanceRow))
+ 
+-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+-    name: 'settings.general.item',
++  ctx.slots.inject('settings.appearance.item', () => ctx.slots.register({
++    name: 'settings.appearance.item',
+     id: 'font-size',
+     order: 11,
+     store: fontStore,
+diff --git a/packages/client/ui-theme/tests/apply.client.spec.ts b/packages/client/ui-theme/tests/apply.client.spec.ts
+index 877ce818c3..7ac97099bc 100644
+--- a/packages/client/ui-theme/tests/apply.client.spec.ts
++++ b/packages/client/ui-theme/tests/apply.client.spec.ts
+@@ -21,7 +21,7 @@ import { ShortcutRegistry } from '../../shortcuts/src/client/registry.ts'
+ // so browser-language detection never runs and a fresh LocaleRuntime opens on
+ // FALLBACK_LOCALE (en); bench stages zh explicitly on the locale instead.
+ 
+-const SLOT = 'settings.general.item'
++const SLOT = 'settings.appearance.item'
+ 
+ function deferred<T>() {
+   let resolve!: (value: T) => void
+-- 
+2.43.0
+

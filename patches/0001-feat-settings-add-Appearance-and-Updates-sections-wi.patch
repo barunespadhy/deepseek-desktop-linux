@@ -1,0 +1,1437 @@
+From f7da5687d5ae3b64c52515cb0b9381bdce1d78f5 Mon Sep 17 00:00:00 2001
+From: DeepSeek Harness Linux <dsh-linux@localhost>
+Date: Sat, 31 Oct 2026 19:27:32 +0200
+Subject: [PATCH 1/3] feat(settings): add Appearance and Updates sections with
+ desktop carrier bridges
+
+Add the shell-owned Appearance section (corner-radius scale, custom CSS, and
+the app-indicator toggle with symbolic/coloured artwork) and the Updates
+section (rc/beta channel choice, apply button, and progress bar) below
+General. Extend the dshDesktop carrier with appearance and channel/apply
+update controls and red availability badges on the settings trigger and the
+Updates nav cell.
+---
+ .../client/AppearanceControlRows.module.css   | 125 +++++++++++
+ .../src/client/AppearanceControlRows.tsx      | 146 ++++++++++++
+ .../src/client/AppearanceSection.module.css   |  12 +
+ .../src/client/AppearanceSection.tsx          |  20 ++
+ .../client/DesktopUpdateIndicator.module.css  |   2 +-
+ .../src/client/SettingsRoot.module.css        |  22 ++
+ .../src/client/SettingsRoot.tsx               |   7 +-
+ .../src/client/UpdatesSection.module.css      | 118 ++++++++++
+ .../src/client/UpdatesSection.tsx             | 133 +++++++++++
+ .../src/client/appearance-source.ts           | 157 +++++++++++++
+ .../src/client/desktop-update-source.ts       |  48 +++-
+ .../ui-settings-general/src/client/index.ts   |  65 +++++-
+ .../ui-settings-general/src/client/locales.ts | 208 ++++++++++++++++++
+ .../client/ui-settings-general/src/types.ts   |  31 +++
+ .../ui-settings/src/client/contract/slots.ts  |  17 +-
+ 15 files changed, 1101 insertions(+), 10 deletions(-)
+ create mode 100644 packages/client/ui-settings-general/src/client/AppearanceControlRows.module.css
+ create mode 100644 packages/client/ui-settings-general/src/client/AppearanceControlRows.tsx
+ create mode 100644 packages/client/ui-settings-general/src/client/AppearanceSection.module.css
+ create mode 100644 packages/client/ui-settings-general/src/client/AppearanceSection.tsx
+ create mode 100644 packages/client/ui-settings-general/src/client/UpdatesSection.module.css
+ create mode 100644 packages/client/ui-settings-general/src/client/UpdatesSection.tsx
+ create mode 100644 packages/client/ui-settings-general/src/client/appearance-source.ts
+
+diff --git a/packages/client/ui-settings-general/src/client/AppearanceControlRows.module.css b/packages/client/ui-settings-general/src/client/AppearanceControlRows.module.css
+new file mode 100644
+index 0000000000..e38f32d7d1
+--- /dev/null
++++ b/packages/client/ui-settings-general/src/client/AppearanceControlRows.module.css
+@@ -0,0 +1,125 @@
++/* Shell-owned Appearance rows: the LanguageRow setting-cell pattern — hairline
++ * separators, left copy, right control; the custom-CSS row stacks its editor
++ * under the copy. */
++
++.row {
++  display: flex;
++  align-items: center;
++  gap: 8px;
++  padding: 16px 0;
++  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
++}
++
++.rowText {
++  flex: 1;
++  min-width: 0;
++  display: flex;
++  flex-direction: column;
++  gap: 4px;
++  padding-right: 48px;
++}
++
++.title {
++  font-size: 14px;
++  font-weight: 400;
++  line-height: 22px;
++  color: var(--dsw-alias-label-primary);
++}
++
++.description {
++  font-size: 12px;
++  line-height: 18px;
++  color: var(--dsw-alias-label-secondary);
++}
++
++/* Corner-radius row: slider + live percent readout. */
++.sliderGroup {
++  flex: none;
++  display: flex;
++  align-items: center;
++  gap: 10px;
++  min-width: 220px;
++}
++
++.slider {
++  flex: 1;
++  min-width: 120px;
++  margin: 0;
++  accent-color: var(--dsw-alias-brand-primary);
++}
++
++.percent {
++  flex: none;
++  min-width: 40px;
++  text-align: end;
++  font-size: 12px;
++  line-height: 18px;
++  color: var(--dsw-alias-label-secondary);
++}
++
++/* Custom-CSS row: full-width monospace editor under the copy. */
++.cssGroup {
++  display: flex;
++  flex-direction: column;
++  align-items: stretch;
++  gap: 8px;
++  width: 100%;
++}
++
++.editor {
++  width: 100%;
++  min-height: 96px;
++  resize: vertical;
++  box-sizing: border-box;
++  padding: 10px 12px;
++  border: 1px solid var(--dsw-alias-border-l2);
++  border-radius: var(--dsw-radius-md);
++  background: var(--dsw-alias-bg-module-platform);
++  color: var(--dsw-alias-label-primary);
++  font-family: var(--ds-font-family-code);
++  font-size: 12px;
++  line-height: 18px;
++}
++
++.editor:focus {
++  outline: none;
++  border-color: var(--dsw-alias-brand-primary);
++}
++
++.reset {
++  align-self: flex-start;
++  height: 28px;
++  padding: 0 12px;
++  border: 1px solid var(--dsw-alias-border-l2);
++  border-radius: var(--dsw-radius-sm);
++  background: transparent;
++  color: var(--dsw-alias-label-primary);
++  font-family: inherit;
++  font-size: 12px;
++  line-height: 18px;
++  cursor: pointer;
++}
++
++@media (hover: hover) {
++  .reset:hover {
++    background: var(--dsw-alias-interactive-bg-hover);
++  }
++}
++
++/* App-indicator row: switch and, while enabled, the artwork choice. */
++.indicatorGroup {
++  flex: none;
++  display: flex;
++  align-items: center;
++  gap: 12px;
++}
++
++/* The custom-CSS row stacks; the other rows keep the side-by-side cell. */
++.row:has(.cssGroup) {
++  flex-direction: column;
++  align-items: stretch;
++}
++
++.row:has(.cssGroup) .rowText {
++  padding-right: 0;
++}
+diff --git a/packages/client/ui-settings-general/src/client/AppearanceControlRows.tsx b/packages/client/ui-settings-general/src/client/AppearanceControlRows.tsx
+new file mode 100644
+index 0000000000..47a23e7a07
+--- /dev/null
++++ b/packages/client/ui-settings-general/src/client/AppearanceControlRows.tsx
+@@ -0,0 +1,146 @@
++/**
++ * Shell-owned Appearance section rows for the Linux desktop carrier:
++ * corner-radius scale, the user stylesheet, and the status-area app
++ * indicator. Each row reads the shared appearance observable and writes
++ * through the injected callbacks; without a native carrier the same
++ * preferences persist in localStorage (appearance-source.ts).
++ */
++import { useRef, useState } from 'react'
++import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
++import { SegmentedControl, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
++import type { DesktopAppearanceView } from './appearance-source.ts'
++import css from './AppearanceControlRows.module.css'
++
++/** Shared injected face: the appearance observable plus its write callbacks. */
++export interface AppearanceRowsInjected {
++  hooks: {
++    /** Framework-observed appearance state (carrier or browser fallback). */
++    appearance: HostObservable<DesktopAppearanceView>
++  }
++  /** Change the corner-radius scale. */
++  setCornerRadiusScale: (scale: number) => void
++  /** Replace the user stylesheet. */
++  setCustomCss: (css: string) => void
++  /** Show or hide the status-area app indicator. */
++  setAppindicatorEnabled: (enabled: boolean) => void
++  /** Pick the app indicator artwork. */
++  setIconStyle: (style: 'symbolic' | 'coloured') => void
++}
++
++/** Shared component props for all three rows. */
++export type AppearanceRowComponentProps =
++  PropsRuntime<'settings.appearance.item'> & PropsLocale<'settings'> & InjectFace<AppearanceRowsInjected>
++
++const RADIUS_MIN = 0
++const RADIUS_MAX = 2
++const RADIUS_STEP = 0.05
++
++/**
++ * Render the corner-radius row: a 0–200% scale slider over the shared
++ * `--dsw-radius-*` tokens, which every button, input, and card corner reads.
++ * @param props - composed slot props (injected face + locale seat).
++ * @returns the row element tree.
++ */
++export function CornerRadiusRow({ t, useAppearance, setCornerRadiusScale }: AppearanceRowComponentProps) {
++  const scale = useAppearance(s => s.cornerRadiusScale)
++  const percent = Math.round(scale * 100)
++  return (
++    <div className={css.row}>
++      <div className={css.rowText}>
++        <div className={css.title}>{t('appearance.radius.title')}</div>
++        <div className={css.description}>{t('appearance.radius.description')}</div>
++      </div>
++      <div className={css.sliderGroup}>
++        <input
++          type="range"
++          className={css.slider}
++          min={RADIUS_MIN}
++          max={RADIUS_MAX}
++          step={RADIUS_STEP}
++          value={scale}
++          aria-label={t('appearance.radius.title')}
++          onChange={(event) => { setCornerRadiusScale(Number.parseFloat(event.currentTarget.value)) }}
++        />
++        <span className={css.percent} aria-live="polite">{t('appearance.radius.scale', { percent })}</span>
++      </div>
++    </div>
++  )
++}
++
++const CSS_DEBOUNCE_MS = 350
++
++/**
++ * Render the custom-CSS row: a monospace editor whose content the shell
++ * injects as a user stylesheet into every DeepSeek Harness page.
++ * @param props - composed slot props (injected face + locale seat).
++ * @returns the row element tree.
++ */
++export function CustomCssRow({ t, useAppearance, setCustomCss }: AppearanceRowComponentProps) {
++  const saved = useAppearance(s => s.customCss)
++  const [draft, setDraft] = useState(() => saved)
++  const timer = useRef<number | undefined>(undefined)
++  return (
++    <div className={css.row}>
++      <div className={css.rowText}>
++        <div className={css.title}>{t('appearance.customCss.title')}</div>
++        <div className={css.description}>{t('appearance.customCss.description')}</div>
++      </div>
++      <div className={css.cssGroup}>
++        <textarea
++          className={css.editor}
++          value={draft}
++          spellCheck={false}
++          aria-label={t('appearance.customCss.title')}
++          placeholder={t('appearance.customCss.placeholder')}
++          onChange={(event) => {
++            const next = event.currentTarget.value
++            setDraft(next)
++            window.clearTimeout(timer.current)
++            timer.current = window.setTimeout(() => { setCustomCss(next) }, CSS_DEBOUNCE_MS)
++          }}
++        />
++        <button type="button" className={css.reset} onClick={() => { setDraft(''); setCustomCss('') }}>
++          {t('appearance.customCss.reset')}
++        </button>
++      </div>
++    </div>
++  )
++}
++
++/**
++ * Render the app-indicator row: an enable switch and, while enabled, the
++ * symbolic/coloured artwork choice. Hidden without the native carrier.
++ * @param props - composed slot props (injected face + locale seat).
++ * @returns the row element tree, or nothing in ordinary browsers.
++ */
++export function AppindicatorRow({ t, useAppearance, setAppindicatorEnabled, setIconStyle }: AppearanceRowComponentProps) {
++  const state = useAppearance(s => s)
++  if (!state.available) return null
++  return (
++    <div className={css.row}>
++      <div className={css.rowText}>
++        <div className={css.title}>{t('appearance.appindicator.title')}</div>
++        <div className={css.description}>{t('appearance.appindicator.description')}</div>
++      </div>
++      <div className={css.indicatorGroup}>
++        <Switch
++          checked={state.appindicatorEnabled}
++          onChange={setAppindicatorEnabled}
++          label={t('appearance.appindicator.title')}
++        />
++        {state.appindicatorEnabled && (
++          <SegmentedControl
++            id="dsh-appindicator-icon-style"
++            value={state.iconStyle}
++            label={t('appearance.appindicator.iconStyle')}
++            options={[
++              { value: 'coloured', label: t('appearance.appindicator.coloured') },
++              { value: 'symbolic', label: t('appearance.appindicator.symbolic') },
++            ]}
++            onChange={(style) => { setIconStyle(style) }}
++          />
++        )}
++      </div>
++    </div>
++  )
++}
+diff --git a/packages/client/ui-settings-general/src/client/AppearanceSection.module.css b/packages/client/ui-settings-general/src/client/AppearanceSection.module.css
+new file mode 100644
+index 0000000000..5c5a856327
+--- /dev/null
++++ b/packages/client/ui-settings-general/src/client/AppearanceSection.module.css
+@@ -0,0 +1,12 @@
++/* Feature-contributed rows own their chrome and separators; the section
++ * strips the trailing separator wherever the column ends. */
++
++.section {
++  display: flex;
++  flex-direction: column;
++  width: 100%;
++}
++
++.section > :global([data-slot='settings.appearance.item']) > :last-child {
++  border-bottom: none;
++}
+diff --git a/packages/client/ui-settings-general/src/client/AppearanceSection.tsx b/packages/client/ui-settings-general/src/client/AppearanceSection.tsx
+new file mode 100644
+index 0000000000..e43d6cb670
+--- /dev/null
++++ b/packages/client/ui-settings-general/src/client/AppearanceSection.tsx
+@@ -0,0 +1,20 @@
++/** The Appearance section: one column rendering appearance-owned item contributions. */
++import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
++import css from './AppearanceSection.module.css'
++
++/** Full component props: section owner share plus item render share. */
++export type AppearanceSectionComponentProps =
++  PropsRuntime<'settings.section'> & PropsRenderSlots<'settings.appearance.item'>
++
++/**
++ * Render the Appearance section content column.
++ * @param props - composed slot props (contract/slots.ts).
++ * @returns the section element tree.
++ */
++export function AppearanceSection({ renderSlot }: AppearanceSectionComponentProps) {
++  return (
++    <div className={css.section}>
++      {renderSlot('settings.appearance.item', {})}
++    </div>
++  )
++}
+diff --git a/packages/client/ui-settings-general/src/client/DesktopUpdateIndicator.module.css b/packages/client/ui-settings-general/src/client/DesktopUpdateIndicator.module.css
+index b5b0eea658..026019a058 100644
+--- a/packages/client/ui-settings-general/src/client/DesktopUpdateIndicator.module.css
++++ b/packages/client/ui-settings-general/src/client/DesktopUpdateIndicator.module.css
+@@ -35,7 +35,7 @@
+   height: 6px;
+   border-radius: 50%;
+   corner-shape: round;
+-  background: var(--dsw-alias-brand-primary-new-colorprimary-new-color);
++  background: var(--dsw-alias-state-error-primary);
+ }
+ 
+ .errorDot { background: currentColor; width: 6px; height: 6px; border-radius: 50%; corner-shape: round; }
+diff --git a/packages/client/ui-settings-general/src/client/SettingsRoot.module.css b/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
+index 87b137c082..2cf8133ac0 100644
+--- a/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
++++ b/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
+@@ -13,6 +13,28 @@
+   margin: 8px 0 10px;
+ }
+ 
++/* Red availability dot over the settings trigger (shell-owned update badge). */
++.triggerBadge {
++  position: absolute;
++  inset-inline-end: 2px;
++  top: 2px;
++  width: 7px;
++  height: 7px;
++  border-radius: 50%;
++  background: var(--dsw-alias-state-error-primary);
++  z-index: 1;
++}
++
++/* Red availability dot inside the Updates nav cell. */
++.navBadge {
++  flex: none;
++  margin-left: auto;
++  width: 7px;
++  height: 7px;
++  border-radius: 50%;
++  background: var(--dsw-alias-state-error-primary);
++}
++
+ .trigger {
+   flex: 1;
+   min-width: 0;
+diff --git a/packages/client/ui-settings-general/src/client/SettingsRoot.tsx b/packages/client/ui-settings-general/src/client/SettingsRoot.tsx
+index de15e3610c..676e903de3 100644
+--- a/packages/client/ui-settings-general/src/client/SettingsRoot.tsx
++++ b/packages/client/ui-settings-general/src/client/SettingsRoot.tsx
+@@ -45,6 +45,7 @@ type PanelProps = {
+   rows: readonly SettingsSectionRow[]
+   renderSlot: SettingsRootComponentProps['renderSlot']
+   activeId: string | undefined
++  updateBadge: boolean
+   onSelect: (id: string) => void
+   onClose: () => void
+ }
+@@ -54,7 +55,7 @@ type PanelProps = {
+  * header button, a mask click, and document-level Escape (mounted only while
+  * open, so the listener lifetime is the panel's).
+  */
+-function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelProps) {
++function SettingsPanel({ rows, renderSlot, activeId, updateBadge, onSelect, onClose }: PanelProps) {
+   // Entries can unmount underneath the requested id, so the render-time
+   // projection falls back to the first row when the id is gone.
+   const active = rows.find(r => r.id === activeId)?.id ?? rows[0]?.id
+@@ -90,6 +91,7 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
+               >
+                 {navIcon(row.id)}
+                 <span className={css.navLabel}>{row.label}</span>
++                {row.id === 'updates' && updateBadge && <span className={css.navBadge} />}
+               </button>
+             ))}
+           </div>
+@@ -133,6 +135,7 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
+   // seats re-render through their own outlets' subscriptions.
+   const rows = useSections(s => s)
+   const desktopUpdate = useDesktopUpdate(state => state)
++  const updateBadge = desktopUpdate.presentation?.phase === 'available'
+   const connectionState = useConnectionState(state => state)
+   const previousConnectionState = useRef(connectionState)
+   const onboardingSteps = useOnboardingSteps(s => s)
+@@ -236,6 +239,7 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
+             {renderSlot('settings.trigger', { wide })}
+           </button>
+         </Tooltip> })}
++        {updateBadge && <span className={css.triggerBadge} role="img" aria-label={t('updates.availableHint')} />}
+         <ConnectionIndicator
+           state={wide && desktopUpdate.presentation?.phase !== 'installing' ? connectionIndicator : undefined}
+           disconnectedLabel={t('connection.error')}
+@@ -253,6 +257,7 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
+           rows={rows}
+           renderSlot={renderSlot}
+           activeId={activeId}
++          updateBadge={updateBadge}
+           onSelect={actions.select}
+           onClose={close}
+         />
+diff --git a/packages/client/ui-settings-general/src/client/UpdatesSection.module.css b/packages/client/ui-settings-general/src/client/UpdatesSection.module.css
+new file mode 100644
+index 0000000000..af62c6dfcb
+--- /dev/null
++++ b/packages/client/ui-settings-general/src/client/UpdatesSection.module.css
+@@ -0,0 +1,118 @@
++/* Shell-owned Updates section: setting-cell rows plus the carrier progress
++ * bar. Token-only colors; no literal palette values. */
++
++.section {
++  display: flex;
++  flex-direction: column;
++  width: 100%;
++}
++
++.row {
++  display: flex;
++  align-items: center;
++  gap: 8px;
++  padding: 16px 0;
++  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
++}
++
++.section > .row:last-of-type,
++.section > .row:last-child {
++  border-bottom: none;
++}
++
++.rowText {
++  flex: 1;
++  min-width: 0;
++  display: flex;
++  flex-direction: column;
++  gap: 4px;
++  padding-right: 48px;
++}
++
++.title {
++  display: flex;
++  align-items: center;
++  gap: 6px;
++  font-size: 14px;
++  font-weight: 400;
++  line-height: 22px;
++  color: var(--dsw-alias-label-primary);
++}
++
++.description {
++  font-size: 12px;
++  line-height: 18px;
++  color: var(--dsw-alias-label-secondary);
++}
++
++.error {
++  font-size: 12px;
++  line-height: 18px;
++  color: var(--dsw-alias-state-error-primary);
++}
++
++/* Red availability dot beside the Updates heading. */
++.badge {
++  flex: none;
++  width: 7px;
++  height: 7px;
++  border-radius: 50%;
++  background: var(--dsw-alias-state-error-primary);
++}
++
++/* Channel selector uses the standard control size. */
++.selector {
++  flex: none;
++  display: inline-flex;
++  align-items: center;
++  gap: 12px;
++  height: 36px;
++  padding: 0 14px;
++  border: none;
++  border-radius: var(--dsw-radius-md);
++  background: var(--dsw-alias-bg-module-platform);
++  font: inherit;
++  font-size: 14px;
++  line-height: 22px;
++  color: var(--dsw-alias-label-primary);
++  cursor: pointer;
++}
++
++@media (hover: hover) {
++  .selector:hover {
++    background: var(--dsw-alias-interactive-bg-hover);
++  }
++}
++
++.apply {
++  flex: none;
++}
++
++.progress {
++  display: flex;
++  flex-direction: column;
++  gap: 6px;
++  padding: 12px 0 16px;
++  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
++}
++
++.progressTrack {
++  width: 100%;
++  height: 6px;
++  border-radius: 3px;
++  background: var(--dsw-alias-border-l2);
++  overflow: hidden;
++}
++
++.progressFill {
++  height: 100%;
++  border-radius: 3px;
++  background: var(--dsw-alias-brand-primary);
++  transition: width 0.2s ease;
++}
++
++.progressLabel {
++  font-size: 12px;
++  line-height: 18px;
++  color: var(--dsw-alias-label-secondary);
++}
+diff --git a/packages/client/ui-settings-general/src/client/UpdatesSection.tsx b/packages/client/ui-settings-general/src/client/UpdatesSection.tsx
+new file mode 100644
+index 0000000000..e3490cda30
+--- /dev/null
++++ b/packages/client/ui-settings-general/src/client/UpdatesSection.tsx
+@@ -0,0 +1,133 @@
++/**
++ * Shell-owned Updates section: channel choice, update availability, the
++ * apply button, and the carrier-driven progress bar. The presentation
++ * itself (phase, percent, failure) arrives through the shared desktop
++ * update observable owned by desktop-update-source.ts.
++ */
++import { useState } from 'react'
++import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
++import { Button, Menu } from '@deepseek-ai/dsh-client-ui-primitives'
++import type { DesktopUpdateChannel, DesktopUpdatePresentation, DesktopUpdateView } from '../types.ts'
++import type { DesktopUpdateChannelView } from './desktop-update-source.ts'
++import css from './UpdatesSection.module.css'
++
++/** Injected face: the shared update observables plus the carrier controls. */
++export interface UpdatesSectionInjected {
++  hooks: {
++    /** Shared carrier status (phase, percent, failure). */
++    desktopUpdate: HostObservable<DesktopUpdateView>
++    /** Channel choice and apply-button state. */
++    updateChannel: HostObservable<DesktopUpdateChannelView>
++  }
++  /** Whether the carrier offers channel selection (Linux shell only). */
++  hasChannelControl: boolean
++  /** Whether the carrier applies updates itself (Linux shell only). */
++  hasApply: boolean
++  /** Persist a channel choice. */
++  setChannel: (channel: DesktopUpdateChannel) => void
++  /** Start the carrier-owned update flow. */
++  apply: () => void
++}
++
++/** Full component props: section owner share, locale seat, injected face. */
++export type UpdatesSectionComponentProps =
++  PropsRuntime<'settings.section'> & PropsLocale<'settings'> & InjectFace<UpdatesSectionInjected>
++
++/** Phases that render a moving progress bar. */
++const BUSY_PHASES: ReadonlySet<DesktopUpdatePresentation['phase']> = new Set([
++  'checking', 'downloading', 'verifying', 'installing',
++])
++
++/**
++ * Render the Updates section.
++ * @param props - composed slot props (contract/slots.ts).
++ * @returns the section element tree.
++ */
++export function UpdatesSection(props: UpdatesSectionComponentProps) {
++  const { t, useDesktopUpdate, useUpdateChannel, hasChannelControl, hasApply, setChannel, apply } = props
++  const { presentation, failed } = useDesktopUpdate(value => value)
++  const { channel, applying } = useUpdateChannel(value => value)
++  const [menuOpen, setMenuOpen] = useState(false)
++  const busy = applying || (presentation !== undefined && BUSY_PHASES.has(presentation.phase))
++  const available = presentation?.phase === 'available'
++  const version = process.env.DSH_CLIENT_VERSION
++  return (
++    <div className={css.section}>
++      {hasChannelControl && (
++        <div className={css.row}>
++          <div className={css.rowText}>
++            <div className={css.title}>{t('updates.channel')}</div>
++            <div className={css.description}>{t('updates.channel.description')}</div>
++          </div>
++          <Menu
++            open={menuOpen}
++            onClose={() => { setMenuOpen(false) }}
++            items={[
++              { id: 'rc', label: t('updates.channel.rc') },
++              { id: 'beta', label: t('updates.channel.beta') },
++            ]}
++            selectedId={channel}
++            onSelect={(id) => { setChannel(id as DesktopUpdateChannel); setMenuOpen(false) }}
++            align="end"
++            portal
++            anchor={(
++              <button
++                type="button"
++                className={css.selector}
++                aria-haspopup="menu"
++                aria-expanded={menuOpen}
++                onClick={() => { setMenuOpen(v => !v) }}
++              >
++                {channel === 'beta' ? t('updates.channel.beta') : t('updates.channel.rc')}
++              </button>
++            )}
++          />
++        </div>
++      )}
++      <div className={css.row}>
++        <div className={css.rowText}>
++          <div className={css.title}>
++            {version === undefined ? t('updates.title') : t('updates.currentVersion', { version })}
++            {available && <span className={css.badge} role="img" aria-label={t('updates.availableHint')} />}
++          </div>
++          {available && (
++            <div className={css.description}>
++              {t('updates.availableVersion', { version: presentation?.version ?? '' })}
++            </div>
++          )}
++          {failed && <div className={css.error}>{t('updates.error')}</div>}
++          {presentation?.phase === 'error' && <div className={css.error}>{t('updates.errorDetail')}</div>}
++        </div>
++        {hasApply && (
++          <Button
++            className={css.apply}
++            variant={available ? 'primary' : 'outline'}
++            disabled={busy}
++            onClick={apply}
++          >
++            {presentation?.phase === 'ready' ? t('desktop.update.ready') : t('updates.apply')}
++          </Button>
++        )}
++      </div>
++      {busy && presentation !== undefined && (
++        <div className={css.progress}>
++          <div className={css.progressTrack}>
++            <div className={css.progressFill} style={{ width: `${Math.max(2, Math.min(100, presentation.percent ?? 0))}%` }} />
++          </div>
++          <div className={css.progressLabel}>
++            {presentation.phase === 'downloading'
++              ? t('desktop.update.downloadDetail', { percent: presentation.percent ?? 0, version: presentation.version ?? '' })
++              : presentation.phase === 'verifying' ? t('desktop.update.verifying')
++                : presentation.phase === 'installing' ? t('desktop.update.installing')
++                  : t('desktop.update.checking')}
++          </div>
++        </div>
++      )}
++      {!hasApply && (
++        <div className={css.row}>
++          <div className={css.description}>{t('updates.unavailable')}</div>
++        </div>
++      )}
++    </div>
++  )
++}
+diff --git a/packages/client/ui-settings-general/src/client/appearance-source.ts b/packages/client/ui-settings-general/src/client/appearance-source.ts
+new file mode 100644
+index 0000000000..2a10c5eae9
+--- /dev/null
++++ b/packages/client/ui-settings-general/src/client/appearance-source.ts
+@@ -0,0 +1,157 @@
++/** Client-owned observation and writes of the optional Desktop appearance preload. */
++import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
++import type { DesktopAppearanceBridge, DesktopAppearanceState } from '../types.ts'
++
++/** Appearance state plus whether a native carrier owns it. */
++export interface DesktopAppearanceView extends DesktopAppearanceState {
++  /** Whether the native shell owns these preferences (false = browser fallback). */
++  readonly available: boolean
++}
++
++const DEFAULT_STATE: DesktopAppearanceState = Object.freeze({
++  cornerRadiusScale: 1,
++  customCss: '',
++  appindicatorEnabled: true,
++  iconStyle: 'coloured' as const,
++})
++
++const STORAGE_KEY = 'dsh-linux-appearance'
++const STYLE_ID = 'dsh-linux-appearance-style'
++
++/** Radius token bases the shell scales; matches ui-theme styles/base.css. */
++const RADIUS_BASES: Readonly<Record<string, number>> = Object.freeze({
++  '--dsw-radius-xs': 4,
++  '--dsw-radius-sm': 8,
++  '--dsw-radius-md': 12,
++  '--dsw-radius-lg': 16,
++  '--dsw-radius-xl': 20,
++  '--dsw-radius-panel': 28,
++})
++
++/**
++ * Compose the radius overrides and the user stylesheet into one CSS string.
++ * @param state - current appearance preferences.
++ * @returns the stylesheet the shell injects (native user sheet or fallback style element).
++ */
++export function appearanceCss(state: DesktopAppearanceState): string {
++  const scale = Math.min(2, Math.max(0, state.cornerRadiusScale))
++  const tokens = Object.entries(RADIUS_BASES)
++    .map(([name, base]) => `${name}: ${Math.round(base * scale * 10) / 10}px;`)
++    .join(' ')
++  return `:root { ${tokens} }\n${state.customCss}`
++}
++
++/** Apply the composed stylesheet through the browser fallback style element. */
++function applyFallbackCss(state: DesktopAppearanceState): void {
++  if (typeof document === 'undefined') return
++  let element = document.getElementById(STYLE_ID)
++  if (element === null) {
++    element = document.createElement('style')
++    element.id = STYLE_ID
++    document.head.append(element)
++  }
++  element.textContent = appearanceCss(state)
++}
++
++/** Read the browser fallback state (native carriers own the desktop source of truth). */
++function readFallback(): DesktopAppearanceState {
++  if (typeof localStorage === 'undefined') return DEFAULT_STATE
++  try {
++    const raw = localStorage.getItem(STORAGE_KEY)
++    if (raw === null) return DEFAULT_STATE
++    const parsed = JSON.parse(raw) as Partial<DesktopAppearanceState>
++    return { ...DEFAULT_STATE, ...parsed }
++  } catch {
++    return DEFAULT_STATE
++  }
++}
++
++/** Persist the browser fallback state. */
++function writeFallback(state: DesktopAppearanceState): void {
++  if (typeof localStorage === 'undefined') return
++  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
++}
++
++/**
++ * One appearance preferences owner: the native shell bridge when present,
++ * localStorage plus an injected style element otherwise. Every write applies
++ * the composed stylesheet immediately and persists through the owning store.
++ */
++export class AppearanceSource {
++  /** Framework-observed appearance state for the Appearance section rows. */
++  readonly store = createSnapshotStore<DesktopAppearanceView>({ ...DEFAULT_STATE, available: false })
++  private live = true
++  private received = false
++  private readonly unsubscribe: (() => void) | undefined
++
++  /** @param bridge - Optional isolated Desktop API, absent in ordinary browsers. */
++  constructor(private readonly bridge: DesktopAppearanceBridge | undefined) {
++    if (bridge !== undefined) {
++      this.unsubscribe = bridge.subscribe((state) => {
++        if (!this.live) return
++        this.received = true
++        this.store.set({ ...state, available: true })
++      })
++      void bridge.status().then((state) => {
++        if (this.live && !this.received) this.store.set({ ...state, available: true })
++      }, () => {
++        if (this.live && !this.received) this.store.set({ ...readFallback(), available: false })
++      })
++    } else {
++      this.unsubscribe = undefined
++      const fallback = readFallback()
++      this.store.set({ ...fallback, available: false })
++      applyFallbackCss(fallback)
++    }
++  }
++
++  /** Change the corner-radius scale and apply it. @param scale - 0..2 multiplier. */
++  setCornerRadiusScale(scale: number): void {
++    const value = Math.min(2, Math.max(0, scale))
++    const state = { ...this.store.getSnapshot(), cornerRadiusScale: value }
++    this.store.set(state)
++    if (this.bridge === undefined) {
++      writeFallback(state)
++      applyFallbackCss(state)
++      return
++    }
++    void this.bridge.setCornerRadiusScale(value).catch(() => { /* native reapplies on next status */ })
++  }
++
++  /** Replace the user stylesheet and apply it. @param css - raw CSS text. */
++  setCustomCss(css: string): void {
++    const state = { ...this.store.getSnapshot(), customCss: css }
++    this.store.set(state)
++    if (this.bridge === undefined) {
++      writeFallback(state)
++      applyFallbackCss(state)
++      return
++    }
++    void this.bridge.setCustomCss(css).catch(() => { /* native reapplies on next status */ })
++  }
++
++  /** Show or hide the status-area app indicator. @param enabled - target visibility. */
++  setAppindicatorEnabled(enabled: boolean): void {
++    const state = { ...this.store.getSnapshot(), appindicatorEnabled: enabled }
++    this.store.set(state)
++    if (this.bridge === undefined) {
++      writeFallback(state)
++      return
++    }
++    void this.bridge.setAppindicatorEnabled(enabled).catch(() => { /* native reapplies on next status */ })
++  }
++
++  /** Pick the app indicator artwork. @param style - symbolic or coloured. */
++  setIconStyle(style: 'symbolic' | 'coloured'): void {
++    const state = { ...this.store.getSnapshot(), iconStyle: style }
++    this.store.set(state)
++    if (this.bridge === undefined) {
++      writeFallback(state)
++      return
++    }
++    void this.bridge.setIconStyle(style).catch(() => { /* native reapplies on next status */ })
++  }
++
++  /** Detach the carrier and ignore any pending status or action completion. */
++  dispose(): void { this.live = false; this.unsubscribe?.() }
++}
+diff --git a/packages/client/ui-settings-general/src/client/desktop-update-source.ts b/packages/client/ui-settings-general/src/client/desktop-update-source.ts
+index 9b30244c1c..5ea3f1ec53 100644
+--- a/packages/client/ui-settings-general/src/client/desktop-update-source.ts
++++ b/packages/client/ui-settings-general/src/client/desktop-update-source.ts
+@@ -1,11 +1,19 @@
+ /** Client-owned observation of the optional Desktop preload. */
+ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+-import type { DesktopUpdateBridge, DesktopUpdateView } from '../types.ts'
++import type { DesktopUpdateBridge, DesktopUpdateChannel, DesktopUpdateView } from '../types.ts'
++
++/** Channel and apply-button state owned by the Updates settings section. */
++export interface DesktopUpdateChannelView {
++  readonly channel?: DesktopUpdateChannel
++  readonly applying: boolean
++}
+ 
+ /** Owns one preload subscription across both sidebar locations. */
+ export class DesktopUpdateSource {
+   /** Framework-observed carrier status shared by both sidebar controls. */
+   readonly store = createSnapshotStore<DesktopUpdateView>({ failed: false, opening: false })
++  /** Framework-observed channel and apply state for the Updates section. */
++  readonly channelStore = createSnapshotStore<DesktopUpdateChannelView>({ applying: false })
+   private live = true
+   private received = false
+   private readonly unsubscribe: (() => void) | undefined
+@@ -22,6 +30,11 @@ export class DesktopUpdateSource {
+     }, () => {
+       if (this.live && !this.received) this.store.set({ ...this.store.getSnapshot(), failed: true })
+     })
++    void bridge?.channel?.().then((channel) => {
++      if (this.live) this.channelStore.set({ ...this.channelStore.getSnapshot(), channel })
++    }, () => {
++      // Channel reads are optional in other desktop carriers; absence is not a failure.
++    })
+   }
+ 
+   /** Invoke one user action; subsequent clicks join the shell-owned operation. */
+@@ -38,6 +51,39 @@ export class DesktopUpdateSource {
+     })
+   }
+ 
++  /** Whether the carrier exposes channel selection (Linux shell only). */
++  hasChannelControl(): boolean {
++    return this.bridge?.setChannel !== undefined && this.bridge.channel !== undefined
++  }
++
++  /** Whether the carrier can apply updates itself (Linux shell only). */
++  hasApply(): boolean {
++    return this.bridge?.apply !== undefined
++  }
++
++  /** Persist a channel choice; the carrier re-checks and pushes fresh status. */
++  setChannel(channel: DesktopUpdateChannel): void {
++    const bridge = this.bridge
++    if (!this.live || bridge?.setChannel === undefined || bridge.channel === undefined) return
++    void bridge.setChannel(channel).catch(() => {
++      if (this.live) this.store.set({ ...this.store.getSnapshot(), failed: true })
++    })
++  }
++
++  /** Start the carrier-owned update flow; progress arrives through the subscription. */
++  apply(): void {
++    const bridge = this.bridge
++    if (!this.live || bridge?.apply === undefined) return
++    const state = this.channelStore.getSnapshot()
++    if (state.applying) return
++    this.channelStore.set({ ...state, applying: true })
++    void bridge.apply().catch(() => {
++      if (this.live) this.store.set({ ...this.store.getSnapshot(), failed: true })
++    }).finally(() => {
++      if (this.live) this.channelStore.set({ ...this.channelStore.getSnapshot(), applying: false })
++    })
++  }
++
+   /** Detach the carrier and ignore any pending status or action completion. */
+   dispose(): void { this.live = false; this.unsubscribe?.() }
+ }
+diff --git a/packages/client/ui-settings-general/src/client/index.ts b/packages/client/ui-settings-general/src/client/index.ts
+index 0d85892813..8153b1d0bb 100644
+--- a/packages/client/ui-settings-general/src/client/index.ts
++++ b/packages/client/ui-settings-general/src/client/index.ts
+@@ -3,8 +3,8 @@
+  * `sidebar.settings` occupant — panel chrome, section navigation, and the
+  * onboarding stage — and registers everything on the Settings pages that
+  * belongs to no single feature: the trigger/header chrome content,
+- * local-document action, General section, `settings` dictionaries, and the
+- * Host release change confirmation.
++ * local-document action, the General, Appearance, and Updates sections,
++ * `settings` dictionaries, and the Host release change confirmation.
+  * Feature-owned rows and sections stay with their features.
+  * Export discipline: packages/client/AGENTS.md.
+  */
+@@ -34,10 +34,16 @@ import type { ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client
+ import { createSettingsShellStore } from './shell-store.ts'
+ import { SettingsRoot } from './SettingsRoot.tsx'
+ import { DesktopUpdateBadge } from './DesktopUpdateIndicator.tsx'
+-import type { DesktopUpdateBridge } from '../types.ts'
++import type { DesktopAppearanceBridge, DesktopUpdateBridge } from '../types.ts'
+ import { DesktopUpdateSource } from './desktop-update-source.ts'
++import { AppearanceSource } from './appearance-source.ts'
+ import { CloseLabel, HeaderContent, TriggerContent } from './chrome.tsx'
+ import { GeneralSection } from './GeneralSection.tsx'
++import { AppearanceSection } from './AppearanceSection.tsx'
++import { UpdatesSection, type UpdatesSectionInjected } from './UpdatesSection.tsx'
++import {
++  AppindicatorRow, CornerRadiusRow, CustomCssRow, type AppearanceRowsInjected,
++} from './AppearanceControlRows.tsx'
+ import { CurrentVersionRow } from './CurrentVersionRow.tsx'
+ import { DeveloperToolsRow, type DeveloperToolsRowInjected } from './DeveloperToolsRow.tsx'
+ import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
+@@ -101,9 +107,12 @@ export function apply(ctx: ClientContext): void {
+   }, CurrentVersionRow))
+   ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }), 'ui-settings-general: dictionaries')
+   const connection = ctx.get('connection') as ConnectionHandle
+-  const carrier = (globalThis as typeof globalThis & { dshDesktop?: { protocolVersion: number; updates?: DesktopUpdateBridge } }).dshDesktop
++  const carrier = (globalThis as typeof globalThis & {
++    dshDesktop?: { protocolVersion: number; updates?: DesktopUpdateBridge; appearance?: DesktopAppearanceBridge }
++  }).dshDesktop
+   const desktopUpdate = new DesktopUpdateSource(carrier?.protocolVersion === 1 ? carrier.updates : undefined)
+-  ctx.effect(() => () => { desktopUpdate.dispose() }, 'ui-settings-general: desktop update carrier')
++  const appearance = new AppearanceSource(carrier?.protocolVersion === 1 ? carrier.appearance : undefined)
++  ctx.effect(() => () => { desktopUpdate.dispose(); appearance.dispose() }, 'ui-settings-general: desktop carriers')
+   ctx.slots.inject('sidebar.toggle.badge', () => ctx.slots.register({
+     name: 'sidebar.toggle.badge', locale: NS,
+     inject: () => ({ hooks: { desktopUpdate: desktopUpdate.store, connectionState: connection.state } }),
+@@ -134,8 +143,10 @@ export function apply(ctx: ClientContext): void {
+   let rows: readonly SettingsSectionRow[] = []
+   let onboardingVersion = -1
+   let onboardingSteps: readonly SettingsOnboardingStep[] = []
++  // Assigned when the shell store exists; the update indicator navigates here.
++  let openUpdatesSection = (): void => { /* reassigned inside the shell registration */ }
+   const shellInjected = (): SettingsRootInjected => ({
+-    openDesktopUpdate: () => { desktopUpdate.open() },
++    openDesktopUpdate: () => { desktopUpdate.open(); openUpdatesSection() },
+     reconnect: () => { connection.reconnect() },
+     hooks: {
+       shortcuts: ctx.shortcuts.catalog,
+@@ -193,6 +204,7 @@ export function apply(ctx: ClientContext): void {
+       const shellHandle = createSettingsShellStore()
+       const shellInstance = shellHandle.create()
+       const shellStore: typeof shellHandle = { ...shellHandle, create: () => shellInstance }
++      openUpdatesSection = () => { shellInstance.actions.openSection('updates') }
+       const disposeCommand = ctx.shortcuts.register({
+         id: 'settings.open' as ShortcutCommandId, label: () => t('shortcut.open'), aliases: ['settings', 'preferences'],
+         defaults: {
+@@ -253,6 +265,47 @@ export function apply(ctx: ClientContext): void {
+     locale: NS,
+     children: { 'settings.general.item': { kind: 'list', scope: 'root' } },
+   }, GeneralSection))
++  // Appearance follows General; the theme feature contributes its theme and
++  // font rows into this section's item slot, the shell its desktop rows.
++  ctx.slots.inject('settings.section', () => ctx.slots.register({
++    name: 'settings.section',
++    id: 'appearance',
++    order: 5,
++    label: () => t('appearance.nav'),
++    locale: NS,
++    children: { 'settings.appearance.item': { kind: 'list', scope: 'root' } },
++  }, AppearanceSection))
++  const appearanceInjected = (): AppearanceRowsInjected => ({
++    hooks: { appearance: appearance.store },
++    setCornerRadiusScale: (scale) => { appearance.setCornerRadiusScale(scale) },
++    setCustomCss: (css) => { appearance.setCustomCss(css) },
++    setAppindicatorEnabled: (enabled) => { appearance.setAppindicatorEnabled(enabled) },
++    setIconStyle: (style) => { appearance.setIconStyle(style) },
++  })
++  ctx.slots.inject('settings.appearance.item', () => ctx.slots.register({
++    name: 'settings.appearance.item', id: 'corner-radius', order: 20, locale: NS, inject: appearanceInjected,
++  }, CornerRadiusRow))
++  ctx.slots.inject('settings.appearance.item', () => ctx.slots.register({
++    name: 'settings.appearance.item', id: 'custom-css', order: 30, locale: NS, inject: appearanceInjected,
++  }, CustomCssRow))
++  ctx.slots.inject('settings.appearance.item', () => ctx.slots.register({
++    name: 'settings.appearance.item', id: 'appindicator', order: 40, locale: NS, inject: appearanceInjected,
++  }, AppindicatorRow))
++  const updatesInjected = (): UpdatesSectionInjected => ({
++    hooks: { desktopUpdate: desktopUpdate.store, updateChannel: desktopUpdate.channelStore },
++    hasChannelControl: desktopUpdate.hasChannelControl(),
++    hasApply: desktopUpdate.hasApply(),
++    setChannel: (channel) => { desktopUpdate.setChannel(channel) },
++    apply: () => { desktopUpdate.apply() },
++  })
++  ctx.slots.inject('settings.section', () => ctx.slots.register({
++    name: 'settings.section',
++    id: 'updates',
++    order: 6,
++    label: () => t('updates.nav'),
++    locale: NS,
++    inject: updatesInjected,
++  }, UpdatesSection))
+   // The page's module system applies no plugin update from another Host release; this dialog offers the reload.
+   const releasePromptInjected = (): HostReleasePromptInjected => ({
+     dismissRelease: () => { ctx.modules.entries.dismissRelease() },
+diff --git a/packages/client/ui-settings-general/src/client/locales.ts b/packages/client/ui-settings-general/src/client/locales.ts
+index 58afc6bba7..a26fbabeae 100644
+--- a/packages/client/ui-settings-general/src/client/locales.ts
++++ b/packages/client/ui-settings-general/src/client/locales.ts
+@@ -29,6 +29,32 @@ export const zh = {
+   'openDocument.error': '无法打开配置文件',
+   'general.nav': '通用设置',
+   'general.currentVersion': '当前版本：{version}',
++  'appearance.nav': '外观',
++  'updates.nav': '更新',
++  'appearance.radius.title': '圆角',
++  'appearance.radius.description': '调整界面中按钮、输入框等控件的圆角大小。',
++  'appearance.radius.scale': '{percent}%',
++  'appearance.customCss.title': '自定义 CSS',
++  'appearance.customCss.description': '注入到每个 DeepSeek Harness 页面的样式表。',
++  'appearance.customCss.placeholder': '例如：input, button { border-radius: 6px; }',
++  'appearance.customCss.reset': '重置',
++  'appearance.appindicator.title': '应用指示器',
++  'appearance.appindicator.description': '在桌面状态栏中显示 DeepSeek 图标。',
++  'appearance.appindicator.iconStyle': '图标样式',
++  'appearance.appindicator.coloured': '彩色',
++  'appearance.appindicator.symbolic': '单色符号',
++  'updates.channel': '更新通道',
++  'updates.channel.description': '选择此应用跟踪的 DeepSeek Harness 版本线。',
++  'updates.channel.rc': '候选发布版',
++  'updates.channel.beta': 'Beta 测试版',
++  'updates.title': '更新',
++  'updates.currentVersion': '当前版本：{version}',
++  'updates.availableHint': '有新版本可用。',
++  'updates.availableVersion': '新版本 {version} 可用。',
++  'updates.error': '检查更新失败，请点击更新按钮重试。',
++  'updates.errorDetail': '无法应用更新，请检查网络连接后重试。',
++  'updates.apply': '更新',
++  'updates.unavailable': '更新由桌面应用管理。',
+   'developerTools.title': '显示代码工作视图',
+   'developerTools.error': '保存失败，请重试',
+   'developerTools.description': '开启后，显示轨迹、本轮代码差异，可选择完整的 Agent 预设切换',
+@@ -78,6 +104,32 @@ export const en = {
+   'openDocument.error': 'Could not open configuration file',
+   'general.nav': 'General',
+   'general.currentVersion': 'Current version: {version}',
++  'appearance.nav': 'Appearance',
++  'updates.nav': 'Updates',
++  'appearance.radius.title': 'Corner radius',
++  'appearance.radius.description': 'Rounds the corners of buttons, inputs, and other controls across the interface.',
++  'appearance.radius.scale': '{percent}%',
++  'appearance.customCss.title': 'Custom CSS',
++  'appearance.customCss.description': 'Stylesheet injected into every DeepSeek Harness page.',
++  'appearance.customCss.placeholder': 'e.g. input, button { border-radius: 6px; }',
++  'appearance.customCss.reset': 'Reset',
++  'appearance.appindicator.title': 'App indicator',
++  'appearance.appindicator.description': 'Show the DeepSeek icon in the desktop status area.',
++  'appearance.appindicator.iconStyle': 'Icon style',
++  'appearance.appindicator.coloured': 'Coloured',
++  'appearance.appindicator.symbolic': 'Symbolic',
++  'updates.channel': 'Update channel',
++  'updates.channel.description': 'Choose which DeepSeek Harness line this app tracks.',
++  'updates.channel.rc': 'Release candidate',
++  'updates.channel.beta': 'Beta',
++  'updates.title': 'Updates',
++  'updates.currentVersion': 'Current version: {version}',
++  'updates.availableHint': 'A new version is available.',
++  'updates.availableVersion': 'Version {version} is available.',
++  'updates.error': 'The update check failed. Retry from the Update button.',
++  'updates.errorDetail': 'The update could not be applied. Check your connection and retry.',
++  'updates.apply': 'Update',
++  'updates.unavailable': 'Updates are managed by the desktop app.',
+   'developerTools.title': 'Show coding view',
+   'developerTools.error': 'Could not save. Please try again.',
+   'developerTools.description': 'Shows trajectory, code diffs, and all Agent presets',
+@@ -124,6 +176,32 @@ export const ja = {
+   'openDocument.error': '設定ファイルを開けませんでした',
+   'general.nav': '一般',
+   'general.currentVersion': '現在のバージョン: {version}',
++  'appearance.nav': '外観',
++  'updates.nav': 'アップデート',
++  'appearance.radius.title': '角の丸み',
++  'appearance.radius.description': 'ボタンや入力欄など、画面全体のコントロールの角の丸みを調整します。',
++  'appearance.radius.scale': '{percent}%',
++  'appearance.customCss.title': 'カスタム CSS',
++  'appearance.customCss.description': 'すべての DeepSeek Harness ページに注入されるスタイルシート。',
++  'appearance.customCss.placeholder': '例: input, button { border-radius: 6px; }',
++  'appearance.customCss.reset': 'リセット',
++  'appearance.appindicator.title': 'アプリインジケーター',
++  'appearance.appindicator.description': 'デスクトップのステータスエリアに DeepSeek アイコンを表示します。',
++  'appearance.appindicator.iconStyle': 'アイコンスタイル',
++  'appearance.appindicator.coloured': 'カラー',
++  'appearance.appindicator.symbolic': 'シンボリック',
++  'updates.channel': 'アップデートチャネル',
++  'updates.channel.description': 'このアプリが追跡する DeepSeek Harness の系統を選択します。',
++  'updates.channel.rc': 'リリース候補',
++  'updates.channel.beta': 'ベータ',
++  'updates.title': 'アップデート',
++  'updates.currentVersion': '現在のバージョン: {version}',
++  'updates.availableHint': '新しいバージョンが利用できます。',
++  'updates.availableVersion': 'バージョン {version} が利用できます。',
++  'updates.error': 'アップデートの確認に失敗しました。アップデートボタンから再試行してください。',
++  'updates.errorDetail': 'アップデートを適用できませんでした。接続を確認して再試行してください。',
++  'updates.apply': 'アップデート',
++  'updates.unavailable': 'アップデートはデスクトップアプリが管理します。',
+   'developerTools.title': 'コーディングビューを表示',
+   'developerTools.error': '保存できませんでした。再試行してください。',
+   'developerTools.description': '軌跡、コード差分、すべてのエージェントプリセットを表示します',
+@@ -170,6 +248,32 @@ export const es = {
+   'openDocument.error': 'No se pudo abrir el archivo de configuración',
+   'general.nav': 'General',
+   'general.currentVersion': 'Versión actual: {version}',
++  'appearance.nav': 'Apariencia',
++  'updates.nav': 'Actualizaciones',
++  'appearance.radius.title': 'Radio de esquina',
++  'appearance.radius.description': 'Redondea las esquinas de botones, entradas y otros controles de toda la interfaz.',
++  'appearance.radius.scale': '{percent}%',
++  'appearance.customCss.title': 'CSS personalizado',
++  'appearance.customCss.description': 'Hoja de estilos inyectada en cada página de DeepSeek Harness.',
++  'appearance.customCss.placeholder': 'p. ej. input, button { border-radius: 6px; }',
++  'appearance.customCss.reset': 'Restablecer',
++  'appearance.appindicator.title': 'Indicador de la aplicación',
++  'appearance.appindicator.description': 'Muestra el icono de DeepSeek en el área de estado del escritorio.',
++  'appearance.appindicator.iconStyle': 'Estilo del icono',
++  'appearance.appindicator.coloured': 'En color',
++  'appearance.appindicator.symbolic': 'Simbólico',
++  'updates.channel': 'Canal de actualización',
++  'updates.channel.description': 'Elige qué línea de DeepSeek Harness sigue esta aplicación.',
++  'updates.channel.rc': 'Candidato a versión',
++  'updates.channel.beta': 'Beta',
++  'updates.title': 'Actualizaciones',
++  'updates.currentVersion': 'Versión actual: {version}',
++  'updates.availableHint': 'Hay una nueva versión disponible.',
++  'updates.availableVersion': 'La versión {version} está disponible.',
++  'updates.error': 'No se pudo buscar actualizaciones. Reinténtalo con el botón Actualizar.',
++  'updates.errorDetail': 'No se pudo aplicar la actualización. Comprueba tu conexión e inténtalo de nuevo.',
++  'updates.apply': 'Actualizar',
++  'updates.unavailable': 'Las actualizaciones las gestiona la aplicación de escritorio.',
+   'developerTools.title': 'Mostrar vista de codificación',
+   'developerTools.error': 'No se pudo guardar. Por favor inténtalo de nuevo.',
+   'developerTools.description': 'Muestra la trayectoria, las diferencias de código y todos los ajustes preestablecidos del agente.',
+@@ -216,6 +320,32 @@ export const fr = {
+   'openDocument.error': "Impossible d'ouvrir le fichier de configuration",
+   'general.nav': 'Général',
+   'general.currentVersion': 'Version actuelle : {version}',
++  'appearance.nav': 'Apparence',
++  'updates.nav': 'Mises à jour',
++  'appearance.radius.title': 'Rayon des coins',
++  'appearance.radius.description': 'Arrondit les coins des boutons, des champs et des autres contrôles de l’interface.',
++  'appearance.radius.scale': '{percent}%',
++  'appearance.customCss.title': 'CSS personnalisé',
++  'appearance.customCss.description': 'Feuille de style injectée dans chaque page de DeepSeek Harness.',
++  'appearance.customCss.placeholder': 'p. ex. input, button { border-radius: 6px; }',
++  'appearance.customCss.reset': 'Réinitialiser',
++  'appearance.appindicator.title': "Indicateur d'application",
++  'appearance.appindicator.description': 'Affiche l’icône DeepSeek dans la zone d’état du bureau.',
++  'appearance.appindicator.iconStyle': "Style de l'icône",
++  'appearance.appindicator.coloured': 'En couleur',
++  'appearance.appindicator.symbolic': 'Symbolique',
++  'updates.channel': 'Canal de mise à jour',
++  'updates.channel.description': 'Choisissez la ligne DeepSeek Harness suivie par cette application.',
++  'updates.channel.rc': 'Candidat à la publication',
++  'updates.channel.beta': 'Bêta',
++  'updates.title': 'Mises à jour',
++  'updates.currentVersion': 'Version actuelle : {version}',
++  'updates.availableHint': 'Une nouvelle version est disponible.',
++  'updates.availableVersion': 'La version {version} est disponible.',
++  'updates.error': 'Impossible de vérifier les mises à jour. Réessayez avec le bouton Mettre à jour.',
++  'updates.errorDetail': "Impossible d'appliquer la mise à jour. Vérifiez votre connexion et réessayez.",
++  'updates.apply': 'Mettre à jour',
++  'updates.unavailable': "Les mises à jour sont gérées par l'application de bureau.",
+   'developerTools.title': 'Afficher la vue de codage',
+   'developerTools.error': "Impossible d'enregistrer. Veuillez réessayer.",
+   'developerTools.description': "Affiche la trajectoire, les différences de code et tous les préréglages d'agent",
+@@ -262,6 +392,32 @@ export const de = {
+   'openDocument.error': 'Die Konfigurationsdatei konnte nicht geöffnet werden',
+   'general.nav': 'Allgemein',
+   'general.currentVersion': 'Aktuelle Version: {version}',
++  'appearance.nav': 'Darstellung',
++  'updates.nav': 'Updates',
++  'appearance.radius.title': 'Eckenradius',
++  'appearance.radius.description': 'Rundet die Ecken von Schaltflächen, Eingabefeldern und anderen Bedienelementen ab.',
++  'appearance.radius.scale': '{percent}%',
++  'appearance.customCss.title': 'Benutzerdefiniertes CSS',
++  'appearance.customCss.description': 'Stylesheet, das in jede DeepSeek-Harness-Seite eingefügt wird.',
++  'appearance.customCss.placeholder': 'z. B. input, button { border-radius: 6px; }',
++  'appearance.customCss.reset': 'Zurücksetzen',
++  'appearance.appindicator.title': 'App-Indikator',
++  'appearance.appindicator.description': 'Zeigt das DeepSeek-Symbol im Statusbereich des Desktops an.',
++  'appearance.appindicator.iconStyle': 'Symbolstil',
++  'appearance.appindicator.coloured': 'Farbig',
++  'appearance.appindicator.symbolic': 'Symbolisch',
++  'updates.channel': 'Update-Kanal',
++  'updates.channel.description': 'Wählen Sie, welche DeepSeek-Harness-Linie diese App verfolgt.',
++  'updates.channel.rc': 'Release-Kandidat',
++  'updates.channel.beta': 'Beta',
++  'updates.title': 'Updates',
++  'updates.currentVersion': 'Aktuelle Version: {version}',
++  'updates.availableHint': 'Eine neue Version ist verfügbar.',
++  'updates.availableVersion': 'Version {version} ist verfügbar.',
++  'updates.error': 'Die Update-Suche ist fehlgeschlagen. Versuchen Sie es über die Update-Schaltfläche erneut.',
++  'updates.errorDetail': 'Das Update konnte nicht angewendet werden. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
++  'updates.apply': 'Aktualisieren',
++  'updates.unavailable': 'Updates werden von der Desktop-App verwaltet.',
+   'developerTools.title': 'Codieransicht anzeigen',
+   'developerTools.error': 'Konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.',
+   'developerTools.description': 'Zeigt Ausführungsverlauf, Codeunterschiede und alle Agentenvoreinstellungen an',
+@@ -308,6 +464,32 @@ export const ru = {
+   'openDocument.error': 'Не удалось открыть файл конфигурации',
+   'general.nav': 'Общие',
+   'general.currentVersion': 'Текущая версия: {version}.',
++  'appearance.nav': 'Внешний вид',
++  'updates.nav': 'Обновления',
++  'appearance.radius.title': 'Радиус скругления',
++  'appearance.radius.description': 'Скругляет углы кнопок, полей ввода и других элементов интерфейса.',
++  'appearance.radius.scale': '{percent}%',
++  'appearance.customCss.title': 'Пользовательский CSS',
++  'appearance.customCss.description': 'Таблица стилей, внедряемая в каждую страницу DeepSeek Harness.',
++  'appearance.customCss.placeholder': 'напр. input, button { border-radius: 6px; }',
++  'appearance.customCss.reset': 'Сбросить',
++  'appearance.appindicator.title': 'Индикатор приложения',
++  'appearance.appindicator.description': 'Показывает значок DeepSeek в системной области рабочего стола.',
++  'appearance.appindicator.iconStyle': 'Стиль значка',
++  'appearance.appindicator.coloured': 'Цветной',
++  'appearance.appindicator.symbolic': 'Символьный',
++  'updates.channel': 'Канал обновлений',
++  'updates.channel.description': 'Выберите ветку DeepSeek Harness, за которой следит приложение.',
++  'updates.channel.rc': 'Релиз-кандидат',
++  'updates.channel.beta': 'Бета',
++  'updates.title': 'Обновления',
++  'updates.currentVersion': 'Текущая версия: {version}',
++  'updates.availableHint': 'Доступна новая версия.',
++  'updates.availableVersion': 'Доступна версия {version}.',
++  'updates.error': 'Не удалось проверить обновления. Повторите попытку кнопкой «Обновить».',
++  'updates.errorDetail': 'Не удалось применить обновление. Проверьте подключение и повторите попытку.',
++  'updates.apply': 'Обновить',
++  'updates.unavailable': 'Обновлениями управляет настольное приложение.',
+   'developerTools.title': 'Показать представление кодирования',
+   'developerTools.error': 'Не удалось сохранить. Пожалуйста, попробуйте еще раз.',
+   'developerTools.description': 'Показывает траекторию, различия в коде и все настройки агента.',
+@@ -354,6 +536,32 @@ export const pt = {
+   'openDocument.error': 'Não foi possível abrir o arquivo de configuração',
+   'general.nav': 'Geral',
+   'general.currentVersion': 'Versão atual: {version}',
++  'appearance.nav': 'Aparência',
++  'updates.nav': 'Atualizações',
++  'appearance.radius.title': 'Raio dos cantos',
++  'appearance.radius.description': 'Arredonda os cantos de botões, campos e outros controles da interface.',
++  'appearance.radius.scale': '{percent}%',
++  'appearance.customCss.title': 'CSS personalizado',
++  'appearance.customCss.description': 'Folha de estilo injetada em cada página do DeepSeek Harness.',
++  'appearance.customCss.placeholder': 'ex.: input, button { border-radius: 6px; }',
++  'appearance.customCss.reset': 'Redefinir',
++  'appearance.appindicator.title': 'Indicador do aplicativo',
++  'appearance.appindicator.description': 'Mostra o ícone do DeepSeek na área de status do desktop.',
++  'appearance.appindicator.iconStyle': 'Estilo do ícone',
++  'appearance.appindicator.coloured': 'Colorido',
++  'appearance.appindicator.symbolic': 'Simbólico',
++  'updates.channel': 'Canal de atualização',
++  'updates.channel.description': 'Escolha qual linha do DeepSeek Harness este aplicativo acompanha.',
++  'updates.channel.rc': 'Candidato a lançamento',
++  'updates.channel.beta': 'Beta',
++  'updates.title': 'Atualizações',
++  'updates.currentVersion': 'Versão atual: {version}',
++  'updates.availableHint': 'Uma nova versão está disponível.',
++  'updates.availableVersion': 'A versão {version} está disponível.',
++  'updates.error': 'Não foi possível verificar atualizações. Tente novamente pelo botão Atualizar.',
++  'updates.errorDetail': 'Não foi possível aplicar a atualização. Verifique sua conexão e tente novamente.',
++  'updates.apply': 'Atualizar',
++  'updates.unavailable': 'As atualizações são gerenciadas pelo aplicativo de desktop.',
+   'developerTools.title': 'Mostrar visualização de codificação',
+   'developerTools.error': 'Não foi possível salvar. Por favor, tente novamente.',
+   'developerTools.description': 'Mostra trajetória, diferenças de código e todas as predefinições do agente',
+diff --git a/packages/client/ui-settings-general/src/types.ts b/packages/client/ui-settings-general/src/types.ts
+index 9aa0ea95e3..165c6815b2 100644
+--- a/packages/client/ui-settings-general/src/types.ts
++++ b/packages/client/ui-settings-general/src/types.ts
+@@ -26,6 +26,37 @@ export interface DesktopUpdateBridge {
+   status(): Promise<DesktopUpdatePresentation>
+   open(): Promise<void>
+   subscribe(listener: (state: DesktopUpdatePresentation) => void): () => void
++  /** Optional channel read (Linux shell); absent in other desktop carriers. */
++  channel?(): Promise<DesktopUpdateChannel>
++  /** Optional channel write (Linux shell); switching persists and re-checks. */
++  setChannel?(channel: DesktopUpdateChannel): Promise<void>
++  /** Optional update application (Linux shell): fetch, rebuild, restart. */
++  apply?(): Promise<void>
++}
++
++/** Update channel a Linux desktop shell can track from git. */
++export type DesktopUpdateChannel = 'rc' | 'beta'
++
++/** Desktop appearance preferences owned by the native Linux shell. */
++export interface DesktopAppearanceState {
++  /** Corner-radius scale applied to the `--dsw-radius-*` tokens (1 = default). */
++  readonly cornerRadiusScale: number
++  /** User stylesheet injected into every DeepSeek Harness page. */
++  readonly customCss: string
++  /** Whether the status-area app indicator is shown. */
++  readonly appindicatorEnabled: boolean
++  /** App indicator artwork: symbolic (monochrome) or coloured. */
++  readonly iconStyle: 'symbolic' | 'coloured'
++}
++
++/** Optional carrier API for appearance preferences; absent in ordinary browsers. */
++export interface DesktopAppearanceBridge {
++  status(): Promise<DesktopAppearanceState>
++  subscribe(listener: (state: DesktopAppearanceState) => void): () => void
++  setCornerRadiusScale(scale: number): Promise<void>
++  setCustomCss(css: string): Promise<void>
++  setAppindicatorEnabled(enabled: boolean): Promise<void>
++  setIconStyle(style: 'symbolic' | 'coloured'): Promise<void>
+ }
+ 
+ /** Shared carrier status for the account row and collapsed sidebar badge. */
+diff --git a/packages/client/ui-settings/src/client/contract/slots.ts b/packages/client/ui-settings/src/client/contract/slots.ts
+index d04ac21fa6..554778b86f 100644
+--- a/packages/client/ui-settings/src/client/contract/slots.ts
++++ b/packages/client/ui-settings/src/client/contract/slots.ts
+@@ -79,7 +79,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+      * One preference row inside the General section — the additive seat for a
+      * single setting that needs no page of its own (a whole page is
+      * `settings.section`), contributed by the feature plugin that owns the
+-     * preference (locale → Language, ui-theme → Appearance, ui-conversation →
++     * preference (locale → Language, ui-conversation →
+      * Composer Enter). Options: `id` (row key), `order` (row position). The
+      * section column only stacks rows, so a row draws its own internals,
+      * including its label: nothing projects a `label` here and the owner passes
+@@ -90,6 +90,15 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+      * layer and every registrant already depends on it for `ctx.configForms`.
+      */
+     'settings.general.item': { kind: 'list'; scope: 'root'; owner: SettingsGeneralItemOwnerProps }
++    /**
++     * One preference row inside the Appearance section — the same additive
++     * seat shape as `settings.general.item`, hosted by the section that owns
++     * theme and desktop appearance preferences (ui-theme → theme cubes and
++     * font settings, ui-settings-general → corner radius, custom CSS, and the
++     * desktop app indicator). Declared at runtime by ui-settings-general's
++     * Appearance entry.
++     */
++    'settings.appearance.item': { kind: 'list'; scope: 'root'; owner: SettingsAppearanceItemOwnerProps }
+   }
+ }
+ /** Owner share of a General preference row (the section supplies nothing). */
+@@ -98,6 +107,12 @@ export interface SettingsGeneralItemOwnerProps {
+   children?: never
+ }
+ 
++/** Owner share of an Appearance preference row (the section supplies nothing). */
++export interface SettingsAppearanceItemOwnerProps {
++  /** Marker field: item owner props are intentionally empty. */
++  children?: never
++}
++
+ /** Owner share of a Plugins tab (the section supplies nothing). */
+ export interface SettingsPluginsTabOwnerProps {
+   /** Marker field: tab owner props are intentionally empty. */
+-- 
+2.43.0
+

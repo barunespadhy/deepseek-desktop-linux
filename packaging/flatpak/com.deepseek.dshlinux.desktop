@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=DeepSeek Harness
+Comment=Agent harness desktop for Linux
+Exec=dsh-linux
+Icon=com.deepseek.dshlinux
+Terminal=false
+Categories=Development;Chat;AI;
+StartupWMClass=com.deepseek.dsh-linux
+Keywords=deepseek;ai;agent;
