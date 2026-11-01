@@ -142,7 +142,24 @@
     setIconStyle: (style) => request('appearance.setIconStyle', [style]),
   }
 
-  globalThis.dshDesktop = { protocolVersion: 1, updates, appearance }
+  globalThis.dshDesktop = {
+    protocolVersion: 1,
+    updates,
+    appearance,
+    // Open one validated HTTP(S) link in the desktop default browser. The
+    // shell's account sign-in flow (and any future native-prompted link)
+    // uses this instead of window.open, which WebKit would route nowhere.
+    openExternal: (uri) => {
+      try {
+        const url = new URL(String(uri), location.href)
+        if (url.protocol === 'http:' || url.protocol === 'https:') {
+          post({ type: 'open', uri: url.href })
+        }
+      } catch (_error) {
+        // Malformed input is ignored; the page keeps its own error handling.
+      }
+    },
+  }
   globalThis.__DSH_BRIDGE__ = {
     resolve(id, ok, value) {
       const entry = pending.get(id)

@@ -95,12 +95,18 @@ def main():
                  os.path.join('share', 'applications', 'com.deepseek.dsh-linux.desktop'))
     os.chmod(os.path.join(STAGE, 'usr', 'share', 'applications',
                           'com.deepseek.dsh-linux.desktop'), 0o644)
-    for size in (22, 24, 48, 128, 256, 512):
+    for size in (16, 22, 24, 32, 48, 64, 96, 128, 256, 512):
         install_file(
             os.path.join(ROOT, 'assets', f'icon-coloured-{size}.png'),
             os.path.join('share', 'icons', 'hicolor', f'{size}x{size}', 'apps', 'deepseek-harness.png'))
-    install_file(os.path.join(ROOT, 'assets', 'icon-coloured-48.png'),
-                 os.path.join('share', 'icons', 'hicolor', 'scalable', 'apps', 'deepseek-harness.png'))
+        # 2x-scaled entries keep HiDPI panels from upscaling a small bitmap.
+        double = size * 2
+        if os.path.isfile(os.path.join(ROOT, 'assets', f'icon-coloured-{double}.png')):
+            install_file(
+                os.path.join(ROOT, 'assets', f'icon-coloured-{double}.png'),
+                os.path.join('share', 'icons', 'hicolor', f'{size}x{size}@2', 'apps', 'deepseek-harness.png'))
+    install_file(os.path.join(ROOT, 'assets', 'deepseek-icon.svg'),
+                 os.path.join('share', 'icons', 'hicolor', 'scalable', 'apps', 'deepseek-harness.svg'))
     install_symlink('../lib/dsh-linux/bin/dsh-linux', os.path.join('bin', 'dsh-linux'))
 
     # Mode table for packaging metadata.

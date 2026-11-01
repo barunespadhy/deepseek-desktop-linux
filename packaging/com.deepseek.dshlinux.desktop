@@ -2,9 +2,10 @@
 Type=Application
 Name=DeepSeek Harness
 Comment=Agent harness desktop for Linux
-Exec=dsh-linux
+Exec=dsh-linux %u
 Icon=com.deepseek.dshlinux
 Terminal=false
 Categories=Development;Chat;AI;
+MimeType=x-scheme-handler/dsh;
 StartupWMClass=com.deepseek.dsh-linux
 Keywords=deepseek;ai;agent;

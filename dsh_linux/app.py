@@ -22,13 +22,14 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('WebKit', '6.0')
 gi.require_version('Gdk', '4.0')
 gi.require_version('GdkPixbuf', '2.0')
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, WebKit
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, WebKit
 
 from .config import Config
 from .server import DshServer, free_port
 from .tray import StatusNotifierItem
 from .updater import Updater, UpdateError
 from .icons_data import ICONS
+from .elf_fix import fix_native_addons
 
 APP_ID = os.environ.get('DSH_LINUX_APP_ID', 'com.deepseek.dsh-linux')
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -53,6 +54,10 @@ DEFAULT_PALETTE = {
     'light': {'bg': '#ffffff', 'fg': '#0f1115'},
     'dark': {'bg': '#151517', 'fg': '#f9fafb'},
 }
+
+# The DeepSeek glyph in the titlebar, in logical pixels (the source asset is
+# the 512px vector render, so any scale factor stays sharp).
+TITLEBAR_LOGO_PX = 12
 
 
 def rgba(color: str, alpha: float) -> str:
@@ -83,7 +88,8 @@ class DshLinuxApp(Gtk.Application):
     """The desktop application object."""
 
     def __init__(self):
-        super().__init__(application_id=APP_ID)
+        super().__init__(application_id=APP_ID,
+                         flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
         self.config = None
         self.server = None
         self.updater = None
@@ -132,6 +138,9 @@ class DshLinuxApp(Gtk.Application):
         Gtk.Application.do_startup(self)
         self.config = Config(PROJECT_ROOT)
         self.log('starting dsh-linux')
+        # The window/splash icon name resolves from the hicolor theme the
+        # install script populates (16..512px plus the vector scalable icon).
+        Gtk.Window.set_default_icon_name('deepseek-harness')
 
         self._splash_bg, self._splash_fg = self.resolve_splash_palette()
         provider = Gtk.CssProvider()
@@ -165,6 +174,22 @@ class DshLinuxApp(Gtk.Application):
         self._ensure_main_window()
         self.show_splash()
         threading.Thread(target=self._startup_worker, daemon=True).start()
+
+    def do_command_line(self, command_line):
+        """Handle `dsh://` protocol invocations and ordinary launches.
+
+        The sign-in completion page's 'Open DeepSeek Harness' button points
+        at `dsh://open`; the desktop entry registers this application as the
+        handler.  A running instance surfaces its window; a fresh instance
+        simply activates (the window appears once the interface is loaded).
+        """
+        for argument in command_line.get_arguments():
+            if isinstance(argument, str) and argument.startswith('dsh://'):
+                self.log(f'protocol invocation: {argument}')
+        if self.window is not None and self.first_load_done:
+            self.window.present()
+        self.activate()
+        return 0
 
     def do_shutdown(self):
         if self.server is not None:
@@ -290,6 +315,12 @@ class DshLinuxApp(Gtk.Application):
             self.updater.ensure_repo(progress=self.splash_status)
             if not self.server.is_built():
                 self.updater.ensure_built(progress=self.splash_status)
+            # glibc >= 2.43 refuses to dlopen addons that demand an executable
+            # stack (the bundled TinyCC emits them without PT_GNU_STACK); the
+            # flock addon backs every session write, so repair it before the
+            # server starts — idempotent, and it fixes chat turns and session
+            # export on this and every later launch.
+            fix_native_addons(self.server.repo, self.log)
             self.splash_status('Starting DeepSeek Harness…')
             self.server.start()
             self.log('waiting for the web server…')
@@ -318,13 +349,15 @@ class DshLinuxApp(Gtk.Application):
         header.add_css_class('titlebar')
         brand = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         try:
-            # High-resolution source so the small titlebar glyph stays crisp.
-            glyph = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                os.path.join(PROJECT_ROOT, 'assets', 'icon-coloured-128.png'), 26, 26, True)
-            picture = Gtk.Picture.new_for_paintable(Gdk.Texture.new_for_pixbuf(glyph))
-            picture.set_margin_top(4)
-            picture.set_margin_bottom(4)
-            brand.append(picture)
+            # Gtk.Image rasterizes the 512px vector-sourced asset down to the
+            # requested logical size, so the small titlebar glyph stays crisp
+            # on every display scale.
+            logo = Gtk.Image.new_from_file(
+                os.path.join(PROJECT_ROOT, 'assets', 'icon-coloured-512.png'))
+            logo.set_pixel_size(TITLEBAR_LOGO_PX)
+            logo.set_margin_top(3)
+            logo.set_margin_bottom(3)
+            brand.append(logo)
         except Exception as error:  # the brand mark is decorative
             self.log(f'window logo unavailable: {error}')
         header.pack_start(brand)

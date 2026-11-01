@@ -112,8 +112,8 @@ def pixbuf_from_png(png: bytes):
     return GdkPixbuf.Pixbuf.new_from_stream(stream, None)
 
 
-def pixbuf_argb(pixbuf):
-    """Serialize a pixbuf as the SNI `a(iiay)` ARGB32 pixmap array."""
+def pixbuf_argb_entry(pixbuf):
+    """Serialize a pixbuf as one SNI `(iiay)` ARGB32 pixmap tuple."""
     width, height = pixbuf.get_width(), pixbuf.get_height()
     rowstride = pixbuf.get_rowstride()
     pixels = pixbuf.get_pixels()
@@ -125,7 +125,7 @@ def pixbuf_argb(pixbuf):
             r, g, b, a = pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]
             row += bytes((a, r, g, b))
         rows.append(bytes(row))
-    return GLib.Variant('a(iiay)', [(width, height, GLib.Variant('ay', b''.join(rows)))])
+    return (width, height, GLib.Variant('ay', b''.join(rows)))
 
 
 class StatusNotifierItem:
@@ -225,12 +225,23 @@ class StatusNotifierItem:
         return f'{base}-symbolic' if self.icon_style == 'symbolic' else base
 
     def icon_pixmap(self):
-        key = f'{self.icon_style}-24'
+        # Offer every rendered size so the panel picks the one matching its
+        # own (including 2x/3x HiDPI panels) instead of upscaling a single
+        # 24px image into a blurry blob.
+        prefix = f'{self.icon_style}-'
+        entries = []
+        for key in sorted(ICONS):
+            if not key.startswith(prefix):
+                continue
+            try:
+                entries.append(pixbuf_argb_entry(pixbuf_from_png(ICONS[key])))
+            except Exception:
+                # A broken image loader must not break property reads; panels
+                # fall back to the theme icon name for the missing sizes.
+                continue
         try:
-            return pixbuf_argb(pixbuf_from_png(ICONS[key]))
+            return GLib.Variant('a(iiay)', entries)
         except Exception:
-            # A broken image loader must not break property reads; panels
-            # fall back to the theme icon name in that case.
             return GLib.Variant('a(iiay)', [])
 
     # -- state changes -----------------------------------------------------------

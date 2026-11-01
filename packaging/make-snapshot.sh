@@ -7,8 +7,19 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-PATCH_BASE="f3803c96974ad4a94195fb97e5c637e9c2a3afe3"
-PATCH_TIP="01e509e4b7b77bcc57a27d244d0225ed693bcd55"
+# The desktop patch range: prefer the refs recorded in the source checkout
+# (install.sh / the updater maintain them), and fall back to the commit range
+# the bundled patch files imply. Refs must exist in third_party/dsh, so never
+# hardcode am-recreated hashes here.
+PATCH_BASE="$(git -C third_party/dsh rev-parse --verify refs/desktop/patch-base 2>/dev/null || true)"
+PATCH_TIP="$(git -C third_party/dsh rev-parse --verify refs/desktop/patch-tip 2>/dev/null || true)"
+if [ -z "$PATCH_BASE" ]; then
+  count="$(ls patches/*.patch 2>/dev/null | wc -l)"
+  PATCH_BASE="$(git -C third_party/dsh rev-parse "HEAD~$count")"
+fi
+if [ -z "$PATCH_TIP" ]; then
+  PATCH_TIP="$(git -C third_party/dsh rev-parse HEAD)"
+fi
 
 rm -rf build/snapshot
 mkdir -p build

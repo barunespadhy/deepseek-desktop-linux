@@ -46,30 +46,26 @@ fi
 
 # --- Icons -------------------------------------------------------------------
 log "Installing hicolor icons…"
-for size in 512 256 128 48 24 22; do
+for size in 512 256 128 96 64 48 32 24 22 16; do
   mkdir -p "$DEST_ICONS/${size}x${size}/apps"
   cp "$ROOT/assets/icon-coloured-${size}.png" "$DEST_ICONS/${size}x${size}/apps/deepseek-harness.png"
+  mkdir -p "$DEST_ICONS/${size}x${size}@2/apps"
+  # 2x-scaled entries keep HiDPI panels from upscaling a small bitmap.
+  double=$((size * 2))
+  if [ -f "$ROOT/assets/icon-coloured-${double}.png" ]; then
+    cp "$ROOT/assets/icon-coloured-${double}.png" "$DEST_ICONS/${size}x${size}@2/apps/deepseek-harness.png"
+  fi
 done
 mkdir -p "$DEST_ICONS/scalable/apps"
-python3 - "$ROOT/assets/icon-coloured-48.png" "$DEST_ICONS/scalable/apps/deepseek-harness.svg" <<'PY'
-import base64, sys
-png = open(sys.argv[1], 'rb').read()
-svg = ('<?xml version="1.0" encoding="UTF-8"?>\n'
-       '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
-       'width="48" height="48" viewBox="0 0 48 48">'
-       f'<image xlink:href="data:image/png;base64,{base64.b64encode(png).decode()}" '
-       'width="48" height="48"/></svg>\n')
-open(sys.argv[2], 'w').write(svg)
-PY
-python3 - "$ROOT/assets/icon-symbolic-48.png" "$DEST_ICONS/scalable/apps/deepseek-harness-symbolic.svg" <<'PY'
-import base64, sys
-png = open(sys.argv[1], 'rb').read()
-svg = ('<?xml version="1.0" encoding="UTF-8"?>\n'
-       '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
-       'width="48" height="48" viewBox="0 0 48 48">'
-       f'<image xlink:href="data:image/png;base64,{base64.b64encode(png).decode()}" '
-       'width="48" height="48"/></svg>\n')
-open(sys.argv[2], 'w').write(svg)
+# The real vector source (official DeepSeek glyph), not a PNG-in-SVG wrapper:
+# desktop environments rasterize it at any size.
+cp "$ROOT/assets/deepseek-icon.svg" "$DEST_ICONS/scalable/apps/deepseek-harness.svg"
+python3 - "$ROOT/assets/deepseek-icon.svg" "$DEST_ICONS/scalable/apps/deepseek-harness-symbolic.svg" <<'PY'
+import re, sys
+svg = open(sys.argv[1], encoding='utf-8').read()
+# Symbolic icon: the brand blue path becomes the symbolic foreground color.
+svg = re.sub(r'fill="#4[dD]6[bB][fF][eE]"', 'fill="#ffffff"', svg)
+open(sys.argv[2], 'w', encoding='utf-8').write(svg)
 PY
 command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -f "$DEST_ICONS" >/dev/null 2>&1 || true
 
@@ -82,10 +78,11 @@ cat > "$DEST_APPS/${APP_ID}.desktop" <<EOF
 Type=Application
 Name=DeepSeek Harness
 Comment=Agent harness desktop for Linux
-Exec=$ROOT/bin/dsh-linux
+Exec=$ROOT/bin/dsh-linux %u
 Icon=deepseek-harness
 Terminal=false
 Categories=Development;Chat;AI;
+MimeType=x-scheme-handler/dsh;
 StartupWMClass=com.deepseek.dsh-linux
 Keywords=deepseek;ai;agent;
 EOF

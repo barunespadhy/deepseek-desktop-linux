@@ -19,6 +19,7 @@ rm -rf "$ROOT/build/tar"
 mkdir -p "$TAR_ROOT/share/dsh-linux"
 
 cp -a "$ROOT/dsh_linux" "$ROOT/assets" "$ROOT/vendor" "$ROOT/patches" "$ROOT/bin" "$TAR_ROOT/"
+rm -rf "$TAR_ROOT/dsh_linux/__pycache__"
 cp -a "$ROOT/install.sh" "$TAR_ROOT/install.sh"
 
 log "bundling the Node.js runtime…"
@@ -41,6 +42,7 @@ fi
 cp -a "$ROOT/build/snapshot" "$TAR_ROOT/share/dsh-linux/dsh"
 
 log "writing $OUT"
+mkdir -p "$ROOT/dist"
 tar -czf "$OUT" -C "$ROOT/build/tar" "$NAME"
 du -sh "$OUT"
 log "tarball ready"

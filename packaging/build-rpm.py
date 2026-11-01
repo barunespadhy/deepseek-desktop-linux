@@ -107,7 +107,8 @@ def main():
     lib = os.path.join(TOOLS, 'root', 'usr', 'lib', 'x86_64-linux-gnu')
     combined = os.path.join(TOOLS, 'combined.macros')
     if native:
-        base = [native, '--define', f'_topdir {topdir}', '--nodeps', '-bb',
+        base = [native, '--define', f'_topdir {topdir}', '--define', f'_tmppath {env["TMPDIR"]}',
+                '--nodeps', '-bb',
                 os.path.join(topdir, 'SPECS', f'{NAME}.spec')]
         run(base, env)
     elif os.path.exists(local):

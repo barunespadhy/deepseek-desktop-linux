@@ -14,6 +14,7 @@ import subprocess
 import threading
 import time
 
+from .elf_fix import fix_native_addons
 from .paths import augment_path
 
 GIT_IDENTITY = {
@@ -277,6 +278,9 @@ class Updater:
             build_pump.finish()
             if built.returncode != 0:
                 raise UpdateError('install', self.pnpm_failure(built, ['run', 'build:artifacts']))
+            # The bundled compiler emits addons without PT_GNU_STACK; keep
+            # them dlopen-able on glibc >= 2.43 before the server restarts.
+            fix_native_addons(self.repo, self.log)
             self.push(phase='installing', percent=92, version=target['desc'])
             self.push(phase='ready', percent=100, version=target['desc'])
             if self.restart_callback is None:
@@ -305,6 +309,9 @@ class Updater:
         built = self.pnpm('run', 'build:artifacts', timeout=2400.0)
         if built.returncode != 0:
             raise UpdateError('install', self.pnpm_failure(built, ['run', 'build:artifacts']))
+        # Same glibc execstack hardening as the first-run path: the addon must
+        # load before the first session write or chat turn.
+        fix_native_addons(self.repo, self.log)
 
     def ensure_repo(self, progress=None):
         """Provision the writable checkout a packaged install runs from.

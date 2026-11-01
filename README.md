@@ -13,6 +13,12 @@ you use from the CLI.
   start instantly.
 - **Built-in updates**: git-based updating with a Release-candidate/Beta channel. No manual setup needed.
 - **Appearance**: Corner-radius control and custom CSS in Settings → Appearance.
+- **Account sign-in**: the login button opens DeepSeek's authorization page in your default
+  browser, and the browser's "Open DeepSeek Harness" button brings you back to this app
+  (the app registers as the `dsh://` URL handler).
+- **Sharp icons everywhere**: the desktop, window, tray, and titlebar icons are rasterized from
+  the official DeepSeek vector logo; the status-area icon advertises a full pixmap set so
+  HiDPI panels never upscale a tiny bitmap.
 - Shares `~/.dsh` with the CLI (same sessions and settings).
 
 ## Installation
@@ -123,3 +129,9 @@ packaging/build-tar.sh                # -> dist/deepseek-harness-linux-0.1.0-x86
 - The splash screen follows the DeepSeek UI theme: the app samples the interface's actual
   background and label colors each session (and every minute) and uses them on the next
   launch, falling back to the system color scheme on first run.
+- The first-run and update builds compile DeepSeek's native `flock` addon with the bundled
+  TinyCC, which emits shared objects without a `PT_GNU_STACK` header. glibc ≥ 2.43 refuses to
+  load such addons with `cannot enable executable stack as shared object requires: Invalid
+  argument`, which broke chat turns and session export. The app repairs the header
+  (`PT_GNU_STACK`, non-executable) on every launch and after every build, so the addon always
+  loads.

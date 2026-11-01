@@ -6,5 +6,6 @@ Exec=dsh-linux
 Icon=com.deepseek.dshlinux
 Terminal=false
 Categories=Development;Chat;AI;
+MimeType=x-scheme-handler/dsh;
 StartupWMClass=com.deepseek.dsh-linux
 Keywords=deepseek;ai;agent;

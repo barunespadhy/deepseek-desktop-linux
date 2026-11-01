@@ -1,0 +1,51 @@
+From 3c8f2a4d6b9e1f0a5c7d8e9f0a1b2c3d4e5f6a7b Mon Sep 17 00:00:00 2001
+From: DeepSeek Harness Linux <dsh-linux@localhost>
+Date: Sat, 1 Nov 2026 23:00:00 +0200
+Subject: [PATCH 4/4] feat(account): open the sign-in authorization page through
+ the native shell bridge
+
+The account UI detects a desktop shell by the `dshDesktop` global and then
+lets the shell own the authorization tab. The GTK/WebKit Linux shell cannot
+receive `window.open` popups, so the pending browser tab never appeared and
+sign-in stopped at the waiting-browser phase. Route the authorize URL
+through the shell's `dshDesktop.openExternal` bridge, which opens the
+system default browser. Electron's preload does not expose that entry and
+already opens the page from its main process, so its behavior is unchanged.
+---
+ packages/client/ui-settings-account/src/client/browser-login.ts | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/packages/client/ui-settings-account/src/client/browser-login.ts b/packages/client/ui-settings-account/src/client/browser-login.ts
+index 3d03d1a..de2a309 100644
+--- a/packages/client/ui-settings-account/src/client/browser-login.ts
++++ b/packages/client/ui-settings-account/src/client/browser-login.ts
+@@ -49,6 +49,27 @@ export class BrowserLogin {
+    */
+   update(view: AccountView | undefined): void {
+     const attempt = view?.attempt
++    // Native Linux shells own the authorization tab: the WebKit popup this
++    // class would open never exists, so the authorize URL is handed to the
++    // shell's `dshDesktop.openExternal` bridge, which opens the system
++    // default browser. Electron handles the same flow from its main process
++    // and does not expose that bridge entry, so its behavior is unchanged.
++    const nativeOpen = (globalThis as typeof globalThis & {
++      dshDesktop?: { openExternal?: (uri: string) => void }
++    }).dshDesktop?.openExternal
++    if (nativeOpen !== undefined) {
++      if (attempt == null
++        || ['succeeded', 'failed', 'expired', 'cancelled'].includes(attempt.phase)) {
++        this.attempt = undefined
++        return
++      }
++      if (attempt.phase === 'waiting-browser' && attempt.authorizeUrl !== undefined
++        && this.attempt !== attempt.id) {
++        this.attempt = attempt.id
++        nativeOpen(this.destination(attempt.authorizeUrl))
++      }
++      return
++    }
+     if (attempt?.id !== this.attempt) return
+     if (attempt && ['failed', 'expired', 'cancelled'].includes(attempt.phase)) {
+       this.dispose()
+-- 
+2.51.2
