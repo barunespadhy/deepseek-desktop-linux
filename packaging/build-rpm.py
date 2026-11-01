@@ -27,7 +27,7 @@ Version: {VERSION}
 Release: {RELEASE}
 Summary: DeepSeek Harness desktop for Linux
 License: MIT
-URL: https://github.com/deepseek-ai/deepseek-harness
+URL: https://github.com/barunespadhy/deepseek-desktop-linux/
 BuildArch: {ARCH}
 
 Requires: python3 >= 3.10

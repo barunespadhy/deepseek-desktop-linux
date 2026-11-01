@@ -20,6 +20,7 @@ Section: devel
 Priority: optional
 Architecture: {ARCH}
 Maintainer: DeepSeek Harness Linux <dsh-linux@localhost>
+Homepage: https://github.com/barunespadhy/deepseek-desktop-linux/
 Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-4.0, gir1.2-webkit-6.0, gir1.2-gdkpixbuf-2.0, git, ca-certificates
 Suggests: nodejs (>= 24.9)
 Description: DeepSeek Harness desktop for Linux

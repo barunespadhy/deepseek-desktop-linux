@@ -62,6 +62,28 @@ def main():
         if os.path.exists(path):
             os.remove(path)
 
+    # Enforce sane modes: packages install as root, so the launcher must be
+    # executable by everyone and the desktop entry readable by everyone.
+    launcher = os.path.join(STAGE, APP_DIR, 'bin', 'dsh-linux')
+    os.chmod(launcher, 0o755)
+
+    # A bundled Node.js runtime (24.x) so the app starts on machines that do
+    # not have one; node's headers ride along for the first-run native build.
+    node_tar = os.path.join(ROOT, 'build', 'node.tar.xz')
+    if os.path.isfile(node_tar):
+        node_dir = os.path.join(STAGE, APP_DIR, 'node')
+        os.makedirs(node_dir, exist_ok=True)
+        shutil.unpack_archive(node_tar, node_dir)
+        top = os.listdir(node_dir)
+        if len(top) == 1 and os.path.isdir(os.path.join(node_dir, top[0])):
+            extracted = os.path.join(node_dir, top[0])
+            for entry in os.listdir(extracted):
+                shutil.move(os.path.join(extracted, entry), os.path.join(node_dir, entry))
+            os.rmdir(extracted)
+        os.chmod(os.path.join(node_dir, 'bin', 'node'), 0o755)
+    else:
+        print('warning: build/node.tar.xz missing; packages will need a host Node.js')
+
     # The bundled checkout snapshot (git history included, build outputs not).
     if not os.path.isdir(os.path.join(SNAPSHOT, '.git')):
         sys.exit('build/snapshot missing; create it with packaging/make-snapshot.sh first')
@@ -71,6 +93,8 @@ def main():
     # Desktop entry + icons.
     install_file(os.path.join(ROOT, 'packaging', 'com.deepseek.dsh-linux.desktop'),
                  os.path.join('share', 'applications', 'com.deepseek.dsh-linux.desktop'))
+    os.chmod(os.path.join(STAGE, 'usr', 'share', 'applications',
+                          'com.deepseek.dsh-linux.desktop'), 0o644)
     for size in (22, 24, 48, 128, 256, 512):
         install_file(
             os.path.join(ROOT, 'assets', f'icon-coloured-{size}.png'),

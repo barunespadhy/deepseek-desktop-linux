@@ -28,11 +28,14 @@ for extra in \
 done
 export PATH
 
-# Bundled tools (flatpak: node + git live in /app; pnpm rides along everywhere).
+# Bundled tools (flatpak: node + git live in /app; pnpm rides along everywhere;
+# packaged installs and the tarball carry their own Node.js runtime).
 [ -x /app/bin/node ] && export DSH_LINUX_NODE=/app/bin/node
+[ -x "$ROOT/node/bin/node" ] && { export DSH_LINUX_NODE="$ROOT/node/bin/node"; PATH="$ROOT/node/bin:$PATH"; }
 [ -x /app/bin/git ] && { export DSH_LINUX_GIT=/app/bin/git; [ -d /app/lib/git-core ] && export GIT_EXEC_PATH=/app/lib/git-core; }
 [ -f "$ROOT/vendor/pnpm/bin/pnpm.mjs" ] && export DSH_LINUX_PNPM="$ROOT/vendor/pnpm/bin/pnpm.mjs"
 [ -d "$ROOT/share/dsh-linux/dsh" ] && export DSH_LINUX_SNAPSHOT="$ROOT/share/dsh-linux/dsh"
+export PATH
 
 PYTHON="${DSH_LINUX_PYTHON:-$(command -v python3 2>/dev/null || true)}"
 if [ -z "$PYTHON" ] && [ -x /usr/bin/python3 ]; then PYTHON=/usr/bin/python3; fi

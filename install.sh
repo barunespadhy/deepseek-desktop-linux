@@ -28,13 +28,16 @@ log "Tool paths: node=$(command -v node) pnpm=$(command -v pnpm) git=$(command -
 log "The app re-resolves these at startup, so version-managed installs (nvm/volta/…) keep working from the desktop."
 
 # --- DeepSeek Harness checkout -----------------------------------------------
+# git am records committer identity; supply one so machines without a
+# configured user.name/user.email can still install.
+GIT_IDENTITY=(-c user.name='DeepSeek Harness Linux' -c user.email='dsh-linux@localhost')
 if [ ! -d "$ROOT/third_party/dsh" ]; then
   log "Cloning deepseek-harness from GitHub…"
   mkdir -p "$ROOT/third_party"
   git clone https://github.com/deepseek-ai/deepseek-harness.git "$ROOT/third_party/dsh"
   if compgen -G "$ROOT/patches/*.patch" > /dev/null; then
     log "Applying the desktop UI patches…"
-    git -C "$ROOT/third_party/dsh" am "$ROOT"/patches/*.patch
+    git -C "$ROOT/third_party/dsh" "${GIT_IDENTITY[@]}" am "$ROOT"/patches/*.patch
   fi
   UPSTREAM="$(git -C "$ROOT/third_party/dsh" rev-parse HEAD~"$(ls "$ROOT"/patches/*.patch 2>/dev/null | wc -l)" 2>/dev/null || git -C "$ROOT/third_party/dsh" rev-parse HEAD)"
   git -C "$ROOT/third_party/dsh" update-ref refs/desktop/patch-base "$UPSTREAM" 2>/dev/null || true

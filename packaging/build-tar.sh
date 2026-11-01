@@ -21,6 +21,18 @@ mkdir -p "$TAR_ROOT/share/dsh-linux"
 cp -a "$ROOT/dsh_linux" "$ROOT/assets" "$ROOT/vendor" "$ROOT/patches" "$ROOT/bin" "$TAR_ROOT/"
 cp -a "$ROOT/install.sh" "$TAR_ROOT/install.sh"
 
+log "bundling the Node.js runtime…"
+if [ -f "$ROOT/build/node.tar.xz" ]; then
+  mkdir -p "$TAR_ROOT/node"
+  tar -xJf "$ROOT/build/node.tar.xz" -C "$TAR_ROOT/node"
+  TOP="$TAR_ROOT/node/$(ls "$TAR_ROOT/node" | head -1)"
+  for entry in "$TOP"/*; do mv "$entry" "$TAR_ROOT/node/"; done
+  rmdir "$TOP"
+  chmod +x "$TAR_ROOT/node/bin/node"
+else
+  log "warning: build/node.tar.xz missing; the tarball will need a host Node.js"
+fi
+
 log "bundling the DeepSeek Harness snapshot…"
 if [ ! -d "$ROOT/build/snapshot/.git" ]; then
   log "snapshot missing; run packaging/make-snapshot.sh first"
